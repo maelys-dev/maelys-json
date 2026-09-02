@@ -1,0 +1,8 @@
+/build/
+/build-*/
+*.dSYM/
+*.profraw
+*.profdata
+crash-*
+leak-*
+timeout-*

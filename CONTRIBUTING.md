@@ -1,0 +1,38 @@
+# Contributing
+
+## Gates
+
+`make check` is the merge gate and runs in CI on gcc and clang, Linux and
+macOS. It builds with `-Werror` and the strict warning set, runs the test
+suite, compiles the public header as C++17, enforces the 1000-line file
+limit, checks that `VERSION`, the header and the changelog agree, and that
+the Makefile and CMake source lists match. `make asan`, `make ubsan`,
+`make fuzz-smoke`, `make tidy`, `make cmake-check` (Release build with
+`NDEBUG`, install, `find_package` and pkg-config consumers) and
+`make conformance` against the pinned JSONTestSuite commit are also run in
+CI.
+
+## Style
+
+Formatting follows `.clang-format` (`make format`). Every control statement
+uses braces. Functions stay under about 80 lines and files under 1000 lines.
+Internal symbols carry `MAELYS_JSON_INTERNAL`; only what `include/maelys/json.h`
+declares is public.
+
+Error semantics: `MAELYS_JSON_ERR_ARGUMENT` means the caller passed something
+invalid and nothing changed; `MAELYS_JSON_ERR_STATE` means a sequencing error.
+Any non-ARGUMENT writer error is sticky. Internal invariants use
+`MAELYS_JSON_ASSERT`, never error codes.
+
+## Canonical vectors
+
+`tests/vectors/*.canonical` pin the bytes of Maelys Canonical JSON v1. A
+change to any of them is a format change: bump the version, update
+`docs/canonical-json-v1.md` and the changelog, and say so in the commit.
+
+## Releases
+
+1. Update `VERSION`, the version macros in `include/maelys/json.h` and the
+   changelog section.
+2. `make check asan ubsan fuzz-smoke`.
+3. Tag `v<version>`. Consumers pin that tag.

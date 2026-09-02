@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            cc: gcc
+            cxx: g++
+          - os: ubuntu-latest
+            cc: clang
+            cxx: clang++
+          - os: macos-latest
+            cc: cc
+            cxx: c++
+    runs-on: ${{ matrix.os }}
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: make check
+      - run: make asan
+      - run: make ubsan
+
+  cmake:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build-cmake -DCMAKE_BUILD_TYPE=Debug -DMAELYS_JSON_WERROR=ON
+      - run: cmake --build build-cmake
+      - run: ctest --test-dir build-cmake --output-on-failure
+      - run: make cmake-check
+
+  fuzz-and-conformance:
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+    steps:
+      - uses: actions/checkout@v4
+      - run: make fuzz-smoke FUZZ_CC=clang FUZZ_TIME=30
+      - run: sh tools/fetch-jsontestsuite.sh build/JSONTestSuite
+      - run: make conformance
+
+  tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y clang-tidy
+      - run: make tidy

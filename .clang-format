@@ -1,0 +1,18 @@
+# House style: 4-space indent, 80 columns, braces on every control statement.
+BasedOnStyle: LLVM
+IndentWidth: 4
+ContinuationIndentWidth: 4
+ColumnLimit: 80
+AlignAfterOpenBracket: DontAlign
+AlignOperands: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBraces: Attach
+InsertBraces: true
+PointerAlignment: Right
+SpaceAfterCStyleCast: false
+IndentCaseLabels: true

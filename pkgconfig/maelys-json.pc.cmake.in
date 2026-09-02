@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: maelys-json
+Description: Bounded JSON contracts and canonical writer for Maelys
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lmaelys-json
+Cflags: -I${includedir}

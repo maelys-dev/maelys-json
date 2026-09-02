@@ -1,0 +1,11 @@
+prefix=@PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: maelys-json
+Description: Bounded JSON contracts and canonical writer for Maelys
+Version: @VERSION@
+Libs: -L${libdir} -lmaelys-json
+Cflags: -I${includedir}
+
