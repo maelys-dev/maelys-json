@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 — 2026-09-03
+
+- Regenerate the release workflow with maelys-release 0.2.5. The `v0.1.1`
+  tag exists but produced no release: the publish job of the socle expected
+  deb and rpm packages that a library does not ship.
+
 ## 0.1.1 — 2026-09-03
 
 - CI: initialize the string scanner's `end` so gcc's `-Wmaybe-uninitialized`
