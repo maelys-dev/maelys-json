@@ -27,6 +27,15 @@ jobs:
       - uses: actions/checkout@v4
       - run: make check
       - run: make asan
+      - name: Release socle drift
+        if: matrix.os == 'ubuntu-latest' && matrix.cc == 'clang'
+        run: |
+          set -euo pipefail
+          sha="$(sed -n 's|.*maelys-release/.github/workflows/release.yml@\([0-9a-f]\{40\}\).*|\1|p' .github/workflows/release.yml)"
+          test -n "$sha"
+          git clone -q https://github.com/maelys-dev/maelys-release.git "$RUNNER_TEMP/maelys-release"
+          git -C "$RUNNER_TEMP/maelys-release" checkout -q "$sha"
+          "$RUNNER_TEMP/maelys-release/scripts/adopt.sh" . --product maelys-json --check
       - run: make ubsan
 
   cmake:
