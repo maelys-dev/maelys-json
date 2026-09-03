@@ -1,0 +1,34 @@
+# typed: strict
+# frozen_string_literal: true
+
+# Rendered by maelys-release for one released tag.
+class LibmaelysJson < Formula
+  desc "Bounded JSON reader and canonical writer for C, shared by the Maelys tools"
+  homepage "https://github.com/maelys-dev/maelys-json"
+  url "@URL@"
+  sha256 "@SHA256@"
+  license "MPL-2.0"
+
+  def install
+    system "make", "install", "PREFIX=#{prefix}", "CC=#{ENV.cc}"
+  end
+
+  test do
+    (testpath/"smoke.c").write <<~EOS
+      #include <maelys/json.h>
+      #include <string.h>
+      int main(void) {
+        maelys_json_document_t *document = 0;
+        maelys_json_error_t error;
+        const char text[] = "{\\"ok\\":true}";
+        if (maelys_json_document_parse(text, strlen(text), MAELYS_JSON_PROFILE_RFC8259,
+                                       0, &document, &error) != MAELYS_JSON_OK) return 1;
+        maelys_json_document_release(document);
+        return 0;
+      }
+    EOS
+    system ENV.cc, "-std=c11", "smoke.c", "-I#{include}", "-L#{lib}", "-lmaelys-json", "-o", "smoke"
+    system "./smoke"
+    assert_match "maelys-json", shell_output("pkg-config --list-all --with-path=#{lib}/pkgconfig")
+  end
+end
