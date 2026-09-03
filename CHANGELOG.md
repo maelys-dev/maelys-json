@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Regenerate the release workflow with maelys-release 0.2.7 (the tap publish
+  job no longer trips on the previous formula of the shared tap).
 - Regenerate the release workflow with maelys-release 0.2.6: the shared tap
   is tapped before bottles are built, and `workflow_dispatch` with a `tag`
   input replays the Homebrew publication of an existing tag.
