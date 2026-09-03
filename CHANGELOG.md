@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- CI: initialize the string scanner's `end` so gcc's `-Wmaybe-uninitialized`
+  under ASan is satisfied, and stop clang-tidy from demanding the C11 Annex K
+  `_s` functions, which POSIX does not provide.
 - Release through the shared maelys-release workflows: `scripts/package-release.sh
   TARGET` stages the installed library into `libmaelys-json-VERSION-TARGET.tar.gz`,
   and the Homebrew formula `libmaelys-json`, rendered from

@@ -112,7 +112,7 @@ static maelys_json_result_t parse_string(
         return fail(parser, MAELYS_JSON_ERR_SYNTAX, opening);
     }
     size_t start = ++parser->offset;
-    size_t end;
+    size_t end = 0u;
     maelys_json_result_t result = scan_string_body(parser, &end);
     if (result != MAELYS_JSON_OK) {
         return parser->error && parser->error->code ? result :

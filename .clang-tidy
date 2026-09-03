@@ -9,6 +9,7 @@ Checks: >
   -misc-no-recursion,
   -bugprone-easily-swappable-parameters,
   -cert-dcl37-c,
-  -cert-dcl51-cpp
+  -cert-dcl51-cpp,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
 WarningsAsErrors: '*'
 HeaderFilterRegex: '(include/maelys|src)/.*'
