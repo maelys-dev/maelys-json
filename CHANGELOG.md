@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 — 2026-09-03
 
 - CI: initialize the string scanner's `end` so gcc's `-Wmaybe-uninitialized`
   under ASan is satisfied, and stop clang-tidy from demanding the C11 Annex K
