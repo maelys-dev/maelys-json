@@ -77,8 +77,10 @@ $(TEST): $(TEST_SOURCES) tests/framework.h $(LIBRARY) $(FLAGS_STAMP)
 	@mkdir -p $(@D)
 	$(CC) $(ALL_CFLAGS) $(TEST_SOURCES) $(LIBRARY) -o $@
 
+SUITE := tests/conformance/JSONTestSuite/test_parsing
+
 test: $(TEST)
-	MAELYS_JSON_VECTORS=tests/vectors $(TEST)
+	MAELYS_JSON_VECTORS=tests/vectors MAELYS_JSON_TEST_SUITE=$(SUITE) $(TEST)
 
 # Full gate: tests with -Werror, C++ header check, strict lint, size and
 # version policies, whitespace hygiene.
@@ -130,12 +132,11 @@ coverage:
 		CFLAGS='-O0 -g -fprofile-instr-generate -fcoverage-mapping'
 	sh tools/coverage-report.sh $(BUILD)-coverage "$(CC)" $(LLVM_PREFIX)
 
-# Runs the JSONTestSuite corpus when MAELYS_JSON_TEST_SUITE points at its
-# test_parsing directory (see tools/fetch-jsontestsuite.sh).
+# Conformance only (the vendored JSONTestSuite corpus, also part of `test`).
+# MAELYS_JSON_TEST_SUITE overrides the corpus directory.
 conformance: $(TEST)
 	MAELYS_JSON_VECTORS=tests/vectors \
-	MAELYS_JSON_TEST_SUITE=$${MAELYS_JSON_TEST_SUITE:-$(BUILD)/JSONTestSuite/test_parsing} \
-		$(TEST) conformance
+	MAELYS_JSON_TEST_SUITE=$${MAELYS_JSON_TEST_SUITE:-$(SUITE)} $(TEST) conformance
 
 fuzz:
 	@mkdir -p $(BUILD)/bin

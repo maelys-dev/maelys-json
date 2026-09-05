@@ -1,10 +1,11 @@
 /* SPDX-License-Identifier: MPL-2.0 */
 /*
- * RFC 8259 conformance. Built-in cases always run. When the environment
- * variable MAELYS_JSON_TEST_SUITE points at the test_parsing directory of
- * JSONTestSuite (tools/fetch-jsontestsuite.sh), every y_ file must parse,
- * every n_ file must be rejected, and i_ files must not crash. Documented
- * Maelys deviations from the suite's y_ set are listed in `deviations`.
+ * RFC 8259 conformance. Built-in cases always run. The vendored
+ * JSONTestSuite corpus (tests/conformance/JSONTestSuite/test_parsing, or the
+ * directory named by MAELYS_JSON_TEST_SUITE) is mandatory: every y_ file must
+ * parse, every n_ file must be rejected, and i_ files must not crash. A
+ * missing corpus is a failure, never a skip. Documented Maelys deviations
+ * from the suite's y_ set are listed in `deviations`.
  */
 #define _POSIX_C_SOURCE 200809L
 
@@ -136,12 +137,17 @@ static int check_suite_file(const char *directory, const char *name,
     return failed;
 }
 
+#define VENDORED_SUITE "tests/conformance/JSONTestSuite/test_parsing"
+
 static int json_test_suite(void) {
     const char *directory = getenv("MAELYS_JSON_TEST_SUITE");
-    DIR *handle = directory && *directory ? opendir(directory) : NULL;
+    if (!directory || !*directory) {
+        directory = VENDORED_SUITE;
+    }
+    DIR *handle = opendir(directory);
     if (!handle) {
-        printf("    (JSONTestSuite not available, skipped)\n");
-        return 0;
+        fprintf(stderr, "    cannot open JSONTestSuite corpus at %s\n", directory);
+        return 1;
     }
     const maelys_json_limits_t limits = {
         .maximum_bytes = 1u << 20, .maximum_depth = MAELYS_JSON_MAXIMUM_DEPTH,

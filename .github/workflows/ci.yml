@@ -50,15 +50,13 @@ jobs:
       - run: ctest --test-dir build-cmake --output-on-failure
       - run: make cmake-check
 
-  fuzz-and-conformance:
+  fuzz:
     runs-on: ubuntu-latest
     env:
       CC: clang
     steps:
       - uses: actions/checkout@v4
       - run: make fuzz-smoke FUZZ_CC=clang FUZZ_TIME=30
-      - run: sh tools/fetch-jsontestsuite.sh build/JSONTestSuite
-      - run: make conformance
 
   tidy:
     runs-on: ubuntu-latest

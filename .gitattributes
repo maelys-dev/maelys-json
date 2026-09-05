@@ -1,0 +1,3 @@
+# The conformance corpus contains deliberate CR, BOM and invalid UTF-8 bytes:
+# never normalize it.
+tests/conformance/JSONTestSuite/test_parsing/** -text -diff

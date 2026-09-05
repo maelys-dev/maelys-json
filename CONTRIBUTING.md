@@ -8,9 +8,10 @@ suite, compiles the public header as C++17, enforces the 1000-line file
 limit, checks that `VERSION`, the header and the changelog agree, and that
 the Makefile and CMake source lists match. `make asan`, `make ubsan`,
 `make fuzz-smoke`, `make tidy`, `make cmake-check` (Release build with
-`NDEBUG`, install, `find_package` and pkg-config consumers) and
-`make conformance` against the pinned JSONTestSuite commit are also run in
-CI.
+`NDEBUG`, install, `find_package` and pkg-config consumers) are also run in
+CI. The JSONTestSuite corpus is vendored under `tests/conformance/` at the
+commit recorded there and runs inside `make check`; a missing corpus fails
+the tests. Update it only with `tools/update-jsontestsuite.sh COMMIT`.
 
 ## Licence headers
 

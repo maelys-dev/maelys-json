@@ -67,7 +67,7 @@ make               # static library and pkg-config file in build/
 make check         # tests with -Werror, lint, header-as-C++, policies
 make asan ubsan    # sanitizer builds of the gate
 make fuzz-smoke    # parser, round-trip and writer fuzzers, 15 s each
-make conformance   # JSONTestSuite (see tools/fetch-jsontestsuite.sh)
+make conformance   # vendored JSONTestSuite corpus only (also part of check)
 make coverage      # llvm-cov report of src/
 make tidy          # clang-tidy
 make cmake-check   # Release CMake build, install, find_package and pkg-config consumers
