@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MPL-2.0 */
 /*
  * Golden vectors for Maelys Canonical JSON v1. Each tests/vectors/NAME.json
  * input must canonicalize to exactly NAME.canonical, and the canonical bytes

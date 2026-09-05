@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Vendor the JSONTestSuite parsing corpus (MIT, 318 files) under
+  `tests/conformance/` so that `make check` runs it offline; a missing corpus
+  is now a failure instead of a silent skip.
+
+- SPDX `MPL-2.0` headers on every file, enforced by `make check`; the
+  canonical specification and vectors are additionally CC BY 4.0.
+
 - Regenerate the release workflow with maelys-release 0.2.8 (the tap publish
   job no longer trips on a duplicate formula class).
 - Regenerate the release workflow with maelys-release 0.2.6: the shared tap

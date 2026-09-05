@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 # maelys-json build. `make check` is the gate used by CI.
 #
 # CFLAGS/CXXFLAGS/CPPFLAGS belong to the user and are appended last; the
@@ -76,8 +77,10 @@ $(TEST): $(TEST_SOURCES) tests/framework.h $(LIBRARY) $(FLAGS_STAMP)
 	@mkdir -p $(@D)
 	$(CC) $(ALL_CFLAGS) $(TEST_SOURCES) $(LIBRARY) -o $@
 
+SUITE := tests/conformance/JSONTestSuite/test_parsing
+
 test: $(TEST)
-	MAELYS_JSON_VECTORS=tests/vectors $(TEST)
+	MAELYS_JSON_VECTORS=tests/vectors MAELYS_JSON_TEST_SUITE=$(SUITE) $(TEST)
 
 # Full gate: tests with -Werror, C++ header check, strict lint, size and
 # version policies, whitespace hygiene.
@@ -89,6 +92,7 @@ check: test lint
 		-exec sh -c 'for f do test "$$(wc -l < "$$f")" -le 1000 || { echo "$$f exceeds 1000 lines" >&2; exit 1; }; done' sh {} +
 	sh tools/check-version.sh
 	sh tools/check-cmake-sources.sh $(SOURCES)
+	sh tools/check-spdx.sh
 	@if git rev-parse --git-dir >/dev/null 2>&1; then git diff --check; fi
 	@echo "check: OK"
 
@@ -128,12 +132,11 @@ coverage:
 		CFLAGS='-O0 -g -fprofile-instr-generate -fcoverage-mapping'
 	sh tools/coverage-report.sh $(BUILD)-coverage "$(CC)" $(LLVM_PREFIX)
 
-# Runs the JSONTestSuite corpus when MAELYS_JSON_TEST_SUITE points at its
-# test_parsing directory (see tools/fetch-jsontestsuite.sh).
+# Conformance only (the vendored JSONTestSuite corpus, also part of `test`).
+# MAELYS_JSON_TEST_SUITE overrides the corpus directory.
 conformance: $(TEST)
 	MAELYS_JSON_VECTORS=tests/vectors \
-	MAELYS_JSON_TEST_SUITE=$${MAELYS_JSON_TEST_SUITE:-$(BUILD)/JSONTestSuite/test_parsing} \
-		$(TEST) conformance
+	MAELYS_JSON_TEST_SUITE=$${MAELYS_JSON_TEST_SUITE:-$(SUITE)} $(TEST) conformance
 
 fuzz:
 	@mkdir -p $(BUILD)/bin

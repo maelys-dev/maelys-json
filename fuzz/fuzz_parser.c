@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MPL-2.0 */
 /* Parses arbitrary bytes under both profiles and walks every value with the
  * typed readers, so the reader paths are covered too. */
 #include "maelys/json.h"

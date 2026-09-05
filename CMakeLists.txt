@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 # maelys-json. Consumed either as an installed library (make install +
 # pkg-config) or with add_subdirectory from a sibling checkout:
 #
@@ -62,7 +63,7 @@ if(MAELYS_JSON_BUILD_TESTS)
     target_link_libraries(maelys_json_tests PRIVATE maelys::json)
     add_test(NAME maelys_json COMMAND maelys_json_tests)
     set_tests_properties(maelys_json PROPERTIES
-        ENVIRONMENT "MAELYS_JSON_VECTORS=${CMAKE_CURRENT_SOURCE_DIR}/tests/vectors")
+        ENVIRONMENT "MAELYS_JSON_VECTORS=${CMAKE_CURRENT_SOURCE_DIR}/tests/vectors;MAELYS_JSON_TEST_SUITE=${CMAKE_CURRENT_SOURCE_DIR}/tests/conformance/JSONTestSuite/test_parsing")
 endif()
 
 # Installation: find_package(maelys-json CONFIG) then maelys::json, or

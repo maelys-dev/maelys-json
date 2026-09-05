@@ -1,5 +1,14 @@
 # Maelys Canonical JSON v1
 
+<!-- SPDX-License-Identifier: MPL-2.0 OR CC-BY-4.0 -->
+
+*Licence.* The code of this repository is MPL-2.0. This specification and the
+reference vectors in `tests/vectors/` are additionally offered under the
+Creative Commons Attribution 4.0 International licence (CC BY 4.0,
+<https://creativecommons.org/licenses/by/4.0/>), so that an independent
+implementation may copy the vectors into its own test suite with attribution
+to the Maelys project and no other obligation.
+
 This document defines the bytes emitted by `maelys_json_writer_finish` when
 the writer was created with no flag, or with `MAELYS_JSON_WRITER_FINAL_NEWLINE`
 only. In one sentence: JCS-compatible key ordering and string serialization,
