@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: MPL-2.0
+# Long fuzzing run with a corpus persisted between nights. Any crash is
+# uploaded as an artifact and fails the run.
+name: fuzz-nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CC: clang
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            build/corpus-parser
+            build/corpus-roundtrip
+            build/corpus-writer
+          key: fuzz-corpus-${{ github.run_id }}
+          restore-keys: fuzz-corpus-
+      - run: make fuzz-smoke FUZZ_CC=clang FUZZ_TIME=1200
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes
+          path: |
+            build/crash-*
+            build/leak-*
+            build/timeout-*
+          if-no-files-found: ignore

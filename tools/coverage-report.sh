@@ -3,6 +3,7 @@
 # Produces a line-coverage report of src/ from a build made with
 # -fprofile-instr-generate -fcoverage-mapping.
 # Usage: coverage-report.sh BUILD CC [LLVM_PREFIX]
+# Fails when line coverage of src/ is below COVERAGE_MIN percent (default 90).
 # The llvm tools must match the compiler: Apple clang needs the Xcode ones
 # (xcrun), a Homebrew or distribution clang needs its own.
 set -eu
@@ -26,3 +27,11 @@ $cov report "$build/bin/test-json" -instr-profile="$build/test.profdata" src/
 $cov show "$build/bin/test-json" -instr-profile="$build/test.profdata" src/ \
     -format=html -output-dir="$build/coverage" >/dev/null
 echo "coverage: HTML report in $build/coverage/index.html"
+minimum=${COVERAGE_MIN:-90}
+percent=$($cov export "$build/bin/test-json" -instr-profile="$build/test.profdata" \
+    -summary-only src/ | python3 -c 'import json,sys; print(int(json.load(sys.stdin)["data"][0]["totals"]["lines"]["percent"]))')
+if test "$percent" -lt "$minimum"; then
+    echo "coverage: $percent% of lines, below the $minimum% minimum" >&2
+    exit 1
+fi
+echo "coverage: $percent% of lines (minimum $minimum%)"

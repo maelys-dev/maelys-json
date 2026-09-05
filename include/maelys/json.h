@@ -355,6 +355,23 @@ maelys_json_result_t maelys_json_writer_value(
     maelys_json_value_t value);
 
 /*
+ * Begins an object and copies into it every member of `object` (a parsed
+ * object) whose key is not in `excluded_keys`, in document order, then
+ * returns with the object still open: the caller writes its replacement or
+ * additional members and calls maelys_json_writer_object_end. Excluded keys
+ * that the object does not contain are ignored. This is the "read, modify,
+ * rewrite" primitive: parse, copy everything but the keys to change, write
+ * the new values, end.
+ * Errors: ARGUMENT (bad handle, NULL key, or text the writer profile cannot
+ * carry), NOT_INTEGER, RANGE, LIMIT, STATE, MEMORY. Any failure marks the
+ * writer failed.
+ */
+maelys_json_result_t maelys_json_writer_object_begin_except(
+    maelys_json_writer_t *writer, const maelys_json_document_t *document,
+    maelys_json_value_t object, const char *const *excluded_keys,
+    size_t excluded_count);
+
+/*
  * Serializes the tree. With no flag other than FINAL_NEWLINE the output is
  * Maelys Canonical JSON v1 (docs/canonical-json-v1.md). The caller owns
  * *out_bytes and releases it with free(); *out_size excludes the trailing
@@ -381,6 +398,21 @@ const char *maelys_json_result_string(maelys_json_result_t result);
  */
 size_t maelys_json_error_format(
     const maelys_json_error_t *error, char *buffer, size_t capacity);
+
+/*
+ * Computes the RFC 6901 JSON Pointer of the value being parsed when `error`
+ * occurred, by rescanning the same `bytes` up to error->offset: for example
+ * "/commands/3/payload", or "" for the root. When the failure is inside an
+ * object key or before its colon, the pointer names the enclosing object.
+ * Keys are decoded before "~" and "/" are escaped as "~0" and "~1". The
+ * text is written NUL-terminated and truncated to `capacity`; the return
+ * value is the untruncated length, like snprintf. Returns 0 for a NULL error
+ * or a NULL `bytes` with a non-zero size. Never exposes input bytes other
+ * than the keys on the path.
+ */
+size_t maelys_json_error_pointer(
+    const void *bytes, size_t size, const maelys_json_error_t *error,
+    char *buffer, size_t capacity);
 
 #ifdef __cplusplus
 }

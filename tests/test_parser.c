@@ -373,6 +373,63 @@ static int error_format(void) {
     return 0;
 }
 
+typedef struct pointer_case {
+    const char *input;
+    const char *pointer;
+} pointer_case_t;
+
+static int error_pointer(void) {
+    static const pointer_case_t cases[] = {
+        {"{\"commands\":[{}, {\"payload\": 1x}]}", "/commands/1/payload"},
+        {"{\"a\":[1,2,3,tru]}", "/a/3"},
+        {"{\"a\":{\"b\":{\"c\":\"unterminated", "/a/b/c"},
+        {"{\"a\":1,\"a\":2}", ""},
+        {"{\"a\":1, \"b\" 2}", ""},
+        {"{\"a\":1, \"b\":{\"x\":1, \"y\" 2}}", "/b"},
+        {"[[[]],[[],[1,[2,x]]]]", "/1/1/1/1"},
+        {"{\"a/b\":{\"c~d\":[x]}}", "/a~1b/c~0d/0"},
+        {"{\"\\u00e9\":[x]}", "/\xc3\xa9/0"},
+        {"x", ""},
+        {"", ""},
+        {"{\"a\":[1,2],\"b\":x}", "/b"},
+        {"[\"ab\xc0\x80\"]", "/0"},
+    };
+    for (size_t i = 0u; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+        maelys_json_document_t *document = NULL;
+        maelys_json_error_t error;
+        maelys_json_result_t result = parse_text(cases[i].input,
+            MAELYS_JSON_PROFILE_RFC8259, NULL, &document, &error);
+        char pointer[128];
+        size_t length = maelys_json_error_pointer(cases[i].input,
+            strlen(cases[i].input), &error, pointer, sizeof(pointer));
+        if (result == MAELYS_JSON_OK || strcmp(pointer, cases[i].pointer) != 0 ||
+            length != strlen(cases[i].pointer)) {
+            fprintf(stderr, "    case %zu: %s -> \"%s\" (len %zu), expected \"%s\"\n",
+                i, maelys_json_result_string(result), pointer, length,
+                cases[i].pointer);
+            maelys_json_document_release(document);
+            return 1;
+        }
+    }
+    /* Truncation and degenerate arguments behave like snprintf. */
+    /* Offset 29 is the "1x" primitive: inside the value of "payload". */
+    maelys_json_error_t error = {.code = MAELYS_JSON_ERR_SYNTAX, .offset = 29u};
+    const char *input = "{\"commands\":[{}, {\"payload\": 1x}]}";
+    char small[6];
+    CHECK(maelys_json_error_pointer(input, strlen(input), &error, small,
+        sizeof(small)) == strlen("/commands/1/payload"));
+    CHECK(strcmp(small, "/comm") == 0);
+    CHECK(maelys_json_error_pointer(input, strlen(input), &error, NULL, 0u) ==
+        strlen("/commands/1/payload"));
+    CHECK(maelys_json_error_pointer(input, strlen(input), NULL, small,
+        sizeof(small)) == 0u && small[0] == '\0');
+    CHECK(maelys_json_error_pointer(NULL, 3u, &error, small, sizeof(small)) == 0u);
+    error.offset = 9999u;
+    CHECK(maelys_json_error_pointer(input, strlen(input), &error, small,
+        sizeof(small)) == 0u);
+    return 0;
+}
+
 static int parse_file(void) {
     char path[512];
     snprintf(path, sizeof(path), "%s/08-contract-ascii.json",
@@ -418,6 +475,7 @@ static const test_case_t cases[] = {
     {"duplicate_keys", duplicate_keys},
     {"many_keys", many_keys},
     {"error_format", error_format},
+    {"error_pointer", error_pointer},
     {"parse_file", parse_file},
 };
 

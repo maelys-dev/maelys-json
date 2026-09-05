@@ -469,6 +469,18 @@ static maelys_json_result_t copy_value(
     return MAELYS_JSON_ERR_ARGUMENT;
 }
 
+/* Turns a copy failure into the sticky state the failure model promises.
+ * An ARGUMENT error found mid-copy (text the writer profile cannot carry)
+ * leaves a partially built tree, so the writer cannot continue either. */
+static maelys_json_result_t copy_failed(
+    maelys_json_writer_t *writer, maelys_json_result_t result) {
+    if (result == MAELYS_JSON_ERR_ARGUMENT) {
+        writer_fail(writer, MAELYS_JSON_ERR_STATE);
+        return result;
+    }
+    return writer_fail(writer, result);
+}
+
 maelys_json_result_t maelys_json_writer_value(
     maelys_json_writer_t *writer, const maelys_json_document_t *document,
     maelys_json_value_t value) {
@@ -480,15 +492,57 @@ maelys_json_result_t maelys_json_writer_value(
         return result;
     }
     result = copy_value(writer, document, value);
-    if (result != MAELYS_JSON_OK && result != MAELYS_JSON_ERR_ARGUMENT) {
-        return writer_fail(writer, result);
+    return result == MAELYS_JSON_OK ? result : copy_failed(writer, result);
+}
+
+static int key_excluded(
+    maelys_json_view_t key, const char *const *excluded_keys, size_t count) {
+    for (size_t i = 0u; i < count; ++i) {
+        if (strlen(excluded_keys[i]) == key.size &&
+            memcmp(excluded_keys[i], key.data, key.size) == 0) {
+            return 1;
+        }
     }
-    if (result == MAELYS_JSON_ERR_ARGUMENT) {
-        /* Text the writer profile cannot carry, found mid-copy: the tree is
-         * partially built, so the writer cannot continue. */
-        writer_fail(writer, MAELYS_JSON_ERR_STATE);
+    return 0;
+}
+
+maelys_json_result_t maelys_json_writer_object_begin_except(
+    maelys_json_writer_t *writer, const maelys_json_document_t *document,
+    maelys_json_value_t object, const char *const *excluded_keys,
+    size_t excluded_count) {
+    if (!writer || (!excluded_keys && excluded_count) ||
+        maelys_json_value_type(document, object) != MAELYS_JSON_TYPE_OBJECT) {
+        return MAELYS_JSON_ERR_ARGUMENT;
     }
-    return result;
+    for (size_t i = 0u; i < excluded_count; ++i) {
+        if (!excluded_keys[i]) {
+            return MAELYS_JSON_ERR_ARGUMENT;
+        }
+    }
+    maelys_json_result_t result = writer_ready(writer);
+    if (result != MAELYS_JSON_OK) {
+        return result;
+    }
+    result = maelys_json_writer_object_begin(writer);
+    if (result != MAELYS_JSON_OK) {
+        return result;
+    }
+    size_t count;
+    result = maelys_json_object_size(document, object, &count);
+    for (size_t i = 0u; result == MAELYS_JSON_OK && i < count; ++i) {
+        maelys_json_view_t key;
+        maelys_json_value_t member;
+        result = maelys_json_object_member_at(document, object, i, &key, &member);
+        if (result != MAELYS_JSON_OK ||
+            key_excluded(key, excluded_keys, excluded_count)) {
+            continue;
+        }
+        result = maelys_json_writer_key(writer, key.data, key.size);
+        if (result == MAELYS_JSON_OK) {
+            result = copy_value(writer, document, member);
+        }
+    }
+    return result == MAELYS_JSON_OK ? result : copy_failed(writer, result);
 }
 
 maelys_json_result_t maelys_json_writer_finish(

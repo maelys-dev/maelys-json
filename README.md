@@ -28,6 +28,8 @@ if (maelys_json_document_parse_file("config.json", MAELYS_JSON_PROFILE_RFC8259,
     char message[128];
     maelys_json_error_format(&error, message, sizeof message);
     /* "line 3, column 4 (offset 12): duplicate object key" */
+    /* maelys_json_error_pointer(bytes, size, &error, ...) adds the JSON
+     * Pointer of the failing value, e.g. "/commands/3/payload". */
     return 1;
 }
 maelys_json_value_t root = maelys_json_document_root(document);
@@ -46,6 +48,13 @@ maelys_json_writer_key_cstr(writer, "retries");
 maelys_json_writer_u64(writer, retries + 1u);
 maelys_json_writer_key_cstr(writer, "original");
 maelys_json_writer_value(writer, document, root);   /* copies a subtree */
+maelys_json_writer_object_end(writer);
+
+/* Or, to rewrite one member of a parsed object and keep the rest: */
+static const char *const changed[] = {"retries"};
+maelys_json_writer_object_begin_except(writer, document, root, changed, 1);
+maelys_json_writer_key_cstr(writer, "retries");
+maelys_json_writer_u64(writer, retries + 1u);
 maelys_json_writer_object_end(writer);
 char *bytes;
 size_t size;
@@ -68,7 +77,9 @@ make check         # tests with -Werror, lint, header-as-C++, policies
 make asan ubsan    # sanitizer builds of the gate
 make fuzz-smoke    # parser, round-trip and writer fuzzers, 15 s each
 make conformance   # vendored JSONTestSuite corpus only (also part of check)
-make coverage      # llvm-cov report of src/
+make coverage      # llvm-cov report of src/, fails under COVERAGE_MIN (90 %)
+make jcs-diff      # differential test against the RFC 8785 definition (node)
+make bench         # parse and canonicalize fixed inputs, ns per operation
 make tidy          # clang-tidy
 make cmake-check   # Release CMake build, install, find_package and pkg-config consumers
 ```

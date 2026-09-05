@@ -38,7 +38,8 @@ set(MAELYS_JSON_SOURCES
     src/helpers.c
     src/writer.c
     src/serialize.c
-    src/stdio.c)
+    src/stdio.c
+    src/pointer.c)
 
 add_library(maelys_json STATIC ${MAELYS_JSON_SOURCES})
 add_library(maelys::json ALIAS maelys_json)

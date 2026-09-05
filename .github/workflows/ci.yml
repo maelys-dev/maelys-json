@@ -58,6 +58,12 @@ jobs:
       - uses: actions/checkout@v4
       - run: make fuzz-smoke FUZZ_CC=clang FUZZ_TIME=30
 
+  jcs-differential:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make jcs-diff JCS_COUNT=2000
+
   tidy:
     runs-on: ubuntu-latest
     steps:
