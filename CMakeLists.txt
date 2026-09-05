@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 # maelys-json. Consumed either as an installed library (make install +
 # pkg-config) or with add_subdirectory from a sibling checkout:
 #

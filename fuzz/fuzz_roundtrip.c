@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MPL-2.0 */
 /*
  * Canonical round trip: parse, serialize, parse again, serialize again. The
  * two canonical outputs must be identical (fixed point), and the indented

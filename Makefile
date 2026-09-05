@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MPL-2.0
 # maelys-json build. `make check` is the gate used by CI.
 #
 # CFLAGS/CXXFLAGS/CPPFLAGS belong to the user and are appended last; the
@@ -89,6 +90,7 @@ check: test lint
 		-exec sh -c 'for f do test "$$(wc -l < "$$f")" -le 1000 || { echo "$$f exceeds 1000 lines" >&2; exit 1; }; done' sh {} +
 	sh tools/check-version.sh
 	sh tools/check-cmake-sources.sh $(SOURCES)
+	sh tools/check-spdx.sh
 	@if git rev-parse --git-dir >/dev/null 2>&1; then git diff --check; fi
 	@echo "check: OK"
 

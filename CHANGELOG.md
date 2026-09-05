@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- SPDX `MPL-2.0` headers on every file, enforced by `make check`; the
+  canonical specification and vectors are additionally CC BY 4.0.
+
 - Regenerate the release workflow with maelys-release 0.2.8 (the tap publish
   job no longer trips on a duplicate formula class).
 - Regenerate the release workflow with maelys-release 0.2.6: the shared tap

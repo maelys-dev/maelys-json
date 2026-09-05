@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MPL-2.0
 # Fetches JSONTestSuite (Nicolas Seriot, MIT) at a pinned commit for
 # `make conformance`, and verifies an existing checkout is at that commit.
 # Usage: fetch-jsontestsuite.sh [TARGET_DIR]

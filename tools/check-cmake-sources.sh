@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MPL-2.0
 # Verifies that CMakeLists.txt lists exactly the library sources the
 # Makefile builds, so the two build systems cannot drift.
 set -eu

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MPL-2.0 */
 /* The public header must compile as C++17 and expose stable version data. */
 #include "maelys/json.h"
 

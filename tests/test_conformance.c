@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MPL-2.0 */
 /*
  * RFC 8259 conformance. Built-in cases always run. When the environment
  * variable MAELYS_JSON_TEST_SUITE points at the test_parsing directory of

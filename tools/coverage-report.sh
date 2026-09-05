@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MPL-2.0
 # Produces a line-coverage report of src/ from a build made with
 # -fprofile-instr-generate -fcoverage-mapping.
 # Usage: coverage-report.sh BUILD CC [LLVM_PREFIX]

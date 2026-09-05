@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MPL-2.0
 # Release CMake build with -Werror (so NDEBUG is exercised), install into a
 # scratch prefix, then build and run one consumer through
 # find_package(maelys-json CONFIG) and one through pkg-config.

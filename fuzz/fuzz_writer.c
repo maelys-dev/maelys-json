@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MPL-2.0 */
 /*
  * Drives the writer with an operation stream decoded from the input and
  * checks its failure model: after any non-ARGUMENT error every call reports

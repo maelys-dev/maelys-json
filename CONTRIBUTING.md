@@ -12,6 +12,13 @@ the Makefile and CMake source lists match. `make asan`, `make ubsan`,
 `make conformance` against the pinned JSONTestSuite commit are also run in
 CI.
 
+## Licence headers
+
+Every `.c`, `.h`, `.cpp` and `.sh` file, the Makefile and `CMakeLists.txt`
+start with `SPDX-License-Identifier: MPL-2.0` in their first two lines;
+`tools/check-spdx.sh` enforces it from `make check`. The specification and
+the vectors are also CC BY 4.0; keep that notice when editing them.
+
 ## Style
 
 Formatting follows `.clang-format` (`make format`). Every control statement

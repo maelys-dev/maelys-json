@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MPL-2.0
 # Verifies that VERSION, the public header and the changelog agree.
 set -eu
 version=$(cat VERSION)

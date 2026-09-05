@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MPL-2.0 */
 #ifndef MAELYS_JSON_WRITER_INTERNAL_H
 #define MAELYS_JSON_WRITER_INTERNAL_H
 

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MPL-2.0 */
 /*
  * maelys-json: bounded JSON reader and canonical writer for Maelys contracts.
  *

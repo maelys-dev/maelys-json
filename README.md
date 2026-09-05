@@ -85,4 +85,10 @@ see [`docs/integration.md`](docs/integration.md).
 - [`docs/integration.md`](docs/integration.md): consuming the library from
   maelys-git-core and maelys-cli, version pinning, migration notes.
 
-MPL-2.0.
+## Licence
+
+MPL-2.0 (`LICENSE`), applied file by file: every source carries an
+`SPDX-License-Identifier` header, enforced by `make check`. The canonical
+format specification in `docs/canonical-json-v1.md` and the vectors in
+`tests/vectors/` are additionally offered under CC BY 4.0 so that other
+implementations can reuse them.
