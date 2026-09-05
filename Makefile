@@ -37,7 +37,7 @@ CLANG_FORMAT ?= $(shell command -v $(LLVM_PREFIX)clang-format 2>/dev/null || \
 	command -v clang-format 2>/dev/null)
 
 SOURCES := src/common.c src/utf8.c src/keyset.c src/parser.c src/document.c \
-	src/helpers.c src/writer.c src/serialize.c src/stdio.c
+	src/helpers.c src/writer.c src/serialize.c src/stdio.c src/pointer.c
 HEADERS := include/maelys/json.h src/internal.h src/keyset.h \
 	src/writer_internal.h
 TEST_SOURCES := tests/main.c tests/test_parser.c tests/test_reader.c \
@@ -49,9 +49,12 @@ PC := $(BUILD)/lib/pkgconfig/maelys-json.pc
 FLAGS_STAMP := $(BUILD)/cflags.stamp
 
 .PHONY: all test check lint tidy format asan ubsan coverage conformance \
-	cmake-check fuzz fuzz-smoke install clean force
+	cmake-check fuzz fuzz-smoke jcs-diff bench install clean force
 
-all: $(LIBRARY) $(PC)
+CANON := $(BUILD)/bin/maelys-json-canon
+BENCH := $(BUILD)/bin/bench
+
+all: $(LIBRARY) $(PC) $(CANON)
 
 # Objects depend on the exact flags used, so `make check` rebuilds with
 # -Werror even after a plain `make`.
@@ -79,8 +82,27 @@ $(TEST): $(TEST_SOURCES) tests/framework.h $(LIBRARY) $(FLAGS_STAMP)
 
 SUITE := tests/conformance/JSONTestSuite/test_parsing
 
+$(CANON): tools/canon.c $(LIBRARY) $(FLAGS_STAMP)
+	@mkdir -p $(@D)
+	$(CC) $(ALL_CFLAGS) tools/canon.c $(LIBRARY) -o $@
+
+$(BENCH): tools/bench.c $(LIBRARY) $(FLAGS_STAMP)
+	@mkdir -p $(@D)
+	$(CC) $(ALL_CFLAGS) tools/bench.c $(LIBRARY) -o $@
+
 test: $(TEST)
 	MAELYS_JSON_VECTORS=tests/vectors MAELYS_JSON_TEST_SUITE=$(SUITE) $(TEST)
+
+# Differential test against the ECMAScript definition of RFC 8785 on the
+# shared integer-only domain (needs node).
+JCS_COUNT ?= 500
+JCS_SEED ?= 20260905
+jcs-diff: $(CANON)
+	node tools/jcs-differential.js $(CANON) $(JCS_COUNT) $(JCS_SEED)
+
+# Parse and canonicalize fixed inputs; compare runs on one machine.
+bench: $(BENCH)
+	$(BENCH)
 
 # Full gate: tests with -Werror, C++ header check, strict lint, size and
 # version policies, whitespace hygiene.
@@ -100,7 +122,7 @@ check: test lint
 # cached objects, with and without NDEBUG (assertions must not be the only
 # use of a parameter).
 lint:
-	@for define in "" -DNDEBUG; do for f in $(SOURCES) $(TEST_SOURCES) fuzz/*.c; do \
+	@for define in "" -DNDEBUG; do for f in $(SOURCES) $(TEST_SOURCES) fuzz/*.c tools/*.c; do \
 		$(CC) $(CPPFLAGS) $$define $(INCLUDES) $(CSTD) $(WARNINGS) -Werror -fsyntax-only $$f || exit 1; \
 	done; done
 	@echo "lint: OK"
@@ -126,11 +148,13 @@ ubsan:
 	$(MAKE) check BUILD=$(BUILD)-ubsan WERROR=-Werror \
 		CFLAGS='-O1 -g -fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer'
 
-# Line coverage of the library sources under the test suite (clang/llvm).
+# Line coverage of the library sources under the test suite (clang/llvm);
+# fails below COVERAGE_MIN percent of lines.
+COVERAGE_MIN ?= 90
 coverage:
 	$(MAKE) $(BUILD)-coverage/bin/test-json BUILD=$(BUILD)-coverage \
 		CFLAGS='-O0 -g -fprofile-instr-generate -fcoverage-mapping'
-	sh tools/coverage-report.sh $(BUILD)-coverage "$(CC)" $(LLVM_PREFIX)
+	COVERAGE_MIN=$(COVERAGE_MIN) sh tools/coverage-report.sh $(BUILD)-coverage "$(CC)" $(LLVM_PREFIX)
 
 # Conformance only (the vendored JSONTestSuite corpus, also part of `test`).
 # MAELYS_JSON_TEST_SUITE overrides the corpus directory.

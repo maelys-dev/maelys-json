@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- `maelys_json_writer_object_begin_except`: copy a parsed object minus the
+  keys the caller replaces, leaving the object open.
+- `maelys_json_error_pointer`: RFC 6901 JSON Pointer of the failing value,
+  computed from the input and the error offset, without ABI change.
+- Development tool `maelys-json-canon` (canonicalize, check, reformat from
+  stdin), `make jcs-diff` differential test against the ECMAScript definition
+  of RFC 8785 (2000 random documents in CI), `make bench`, coverage gate at
+  90 % of lines, nightly fuzzing workflow with a persisted corpus.
+
 ## 0.1.3 — 2026-09-05
 
 - Vendor the JSONTestSuite parsing corpus (MIT, 318 files) under

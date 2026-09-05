@@ -480,6 +480,70 @@ static int is_canonical(void) {
     return 0;
 }
 
+static int object_begin_except(void) {
+    maelys_json_document_t *document = NULL;
+    CHECK_RESULT(parse_text("{\"retries\":1,\"name\":\"x\",\"nested\":{\"k\":[1]},\"drop\":true}",
+        MAELYS_JSON_PROFILE_RFC8259, NULL, &document, NULL), MAELYS_JSON_OK);
+    maelys_json_writer_t *writer = NULL;
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL, 0u,
+        &writer), MAELYS_JSON_OK);
+    static const char *const excluded[] = {"retries", "drop", "absent"};
+    CHECK_RESULT(maelys_json_writer_object_begin_except(writer, document, 0u,
+        excluded, 3u), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_key_cstr(writer, "retries"), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_u64(writer, 2u), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_key_cstr(writer, "added"), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_null(writer), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_object_end(writer), MAELYS_JSON_OK);
+    CHECK(finish_equals(writer,
+        "{\"added\":null,\"name\":\"x\",\"nested\":{\"k\":[1]},\"retries\":2}") == 0);
+    maelys_json_writer_release(writer);
+
+    /* No exclusion copies everything; the object stays open. */
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL, 0u,
+        &writer), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_object_begin_except(writer, document, 0u,
+        NULL, 0u), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_key_cstr(writer, "name"), MAELYS_JSON_ERR_DUPLICATE_KEY);
+    maelys_json_writer_release(writer);
+
+    /* Argument errors leave the writer untouched. */
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL, 0u,
+        &writer), MAELYS_JSON_OK);
+    static const char *const with_null[] = {"a", NULL};
+    CHECK_RESULT(maelys_json_writer_object_begin_except(writer, document, 0u,
+        with_null, 2u), MAELYS_JSON_ERR_ARGUMENT);
+    CHECK_RESULT(maelys_json_writer_object_begin_except(writer, document, 0u,
+        NULL, 1u), MAELYS_JSON_ERR_ARGUMENT);
+    CHECK_RESULT(maelys_json_writer_object_begin_except(NULL, document, 0u,
+        NULL, 0u), MAELYS_JSON_ERR_ARGUMENT);
+    maelys_json_value_t nested;
+    CHECK_RESULT(maelys_json_object_get(document, 0u, "nested", &nested), MAELYS_JSON_OK);
+    maelys_json_value_t array;
+    CHECK_RESULT(maelys_json_object_get(document, nested, "k", &array), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_object_begin_except(writer, document, array,
+        NULL, 0u), MAELYS_JSON_ERR_ARGUMENT);
+    CHECK(maelys_json_writer_status(writer) == MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_object_begin_except(writer, document, nested,
+        NULL, 0u), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_object_end(writer), MAELYS_JSON_OK);
+    CHECK(finish_equals(writer, "{\"k\":[1]}") == 0);
+    maelys_json_writer_release(writer);
+    maelys_json_document_release(document);
+
+    /* A profile mismatch mid-copy is sticky, like writer_value. */
+    CHECK_RESULT(parse_text("{\"a\":\"\xc3\xa9\"}", MAELYS_JSON_PROFILE_RFC8259,
+        NULL, &document, NULL), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_CONTRACT_ASCII,
+        NULL, 0u, &writer), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_object_begin_except(writer, document, 0u,
+        NULL, 0u), MAELYS_JSON_ERR_ARGUMENT);
+    CHECK(maelys_json_writer_status(writer) == MAELYS_JSON_ERR_STATE);
+    maelys_json_writer_release(writer);
+    maelys_json_document_release(document);
+    return 0;
+}
+
 static int finish_file(void) {
     maelys_json_writer_t *writer = NULL;
     CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL,
@@ -579,6 +643,7 @@ static const test_case_t cases[] = {
     {"indent_and_ascii", indent_and_ascii},
     {"bridge", bridge},
     {"is_canonical", is_canonical},
+    {"object_begin_except", object_begin_except},
     {"finish_file", finish_file},
     {"growth", growth},
 };

@@ -20,6 +20,15 @@ start with `SPDX-License-Identifier: MPL-2.0` in their first two lines;
 `tools/check-spdx.sh` enforces it from `make check`. The specification and
 the vectors are also CC BY 4.0; keep that notice when editing them.
 
+## Extra gates
+
+`make jcs-diff` (needs node) compares the canonical output with the RFC 8785
+definition on random integer-only documents; CI runs 2000. `make coverage`
+fails under `COVERAGE_MIN` (90 %). `make bench` reports parse and
+canonicalize times; compare two runs on the same machine before and after a
+parser change. The `fuzz-nightly` workflow fuzzes 20 minutes per harness
+every night with a corpus kept in the CI cache.
+
 ## Style
 
 Formatting follows `.clang-format` (`make format`). Every control statement
