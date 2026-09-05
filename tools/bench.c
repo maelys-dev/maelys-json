@@ -4,6 +4,9 @@
  * report nanoseconds per operation and throughput. Not a gate; compare runs
  * on the same machine to catch regressions.
  */
+/* clock_gettime needs POSIX visibility under -std=c11 on glibc. */
+#define _POSIX_C_SOURCE 200809L
+
 #include "maelys/json.h"
 
 #include <stdio.h>
