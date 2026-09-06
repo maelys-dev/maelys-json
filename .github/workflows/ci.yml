@@ -4,8 +4,17 @@ on:
   push:
   pull_request:
 
+# The `check` job is the socle's reusable CI (maelys-release check-product.yml
+# at the version release.yml pins): `make check` on the three release targets,
+# sanitizers on Linux x86_64 and the socle drift check. adopt keeps the socle
+# line current. The jobs below it are this product's own.
 jobs:
   check:
+    uses: maelys-dev/maelys-release/.github/workflows/check-product.yml@148b0979b4ff1af6a4f08ea082b785fcf66fc661 # v0.15.3
+    with:
+      product: maelys-json
+
+  check-matrix:
     strategy:
       fail-fast: false
       matrix:
@@ -27,15 +36,6 @@ jobs:
       - uses: actions/checkout@v4
       - run: make check
       - run: make asan
-      - name: Release socle drift
-        if: matrix.os == 'ubuntu-latest' && matrix.cc == 'clang'
-        run: |
-          set -euo pipefail
-          sha="$(sed -n 's|.*maelys-release/.github/workflows/release.yml@\([0-9a-f]\{40\}\).*|\1|p' .github/workflows/release.yml)"
-          test -n "$sha"
-          git clone -q https://github.com/maelys-dev/maelys-release.git "$RUNNER_TEMP/maelys-release"
-          git -C "$RUNNER_TEMP/maelys-release" checkout -q "$sha"
-          "$RUNNER_TEMP/maelys-release/scripts/adopt.sh" . --product maelys-json --check
       - run: make ubsan
 
   cmake:
