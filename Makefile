@@ -48,7 +48,7 @@ TEST := $(BUILD)/bin/test-json
 PC := $(BUILD)/lib/pkgconfig/maelys-json.pc
 FLAGS_STAMP := $(BUILD)/cflags.stamp
 
-.PHONY: all test check lint tidy format asan ubsan coverage conformance \
+.PHONY: all test check lint tidy format asan ubsan asan-ubsan coverage conformance \
 	cmake-check fuzz fuzz-smoke jcs-diff bench install clean force
 
 CANON := $(BUILD)/bin/maelys-json-canon
@@ -148,6 +148,11 @@ ubsan:
 	$(MAKE) check BUILD=$(BUILD)-ubsan WERROR=-Werror \
 		CFLAGS='-O1 -g -fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer'
 
+# Combined variant the release socle's check-product job runs on Linux.
+asan-ubsan:
+	$(MAKE) check BUILD=$(BUILD)-asan-ubsan WERROR=-Werror \
+		CFLAGS='-O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer'
+
 # Line coverage of the library sources under the test suite (clang/llvm);
 # fails below COVERAGE_MIN percent of lines.
 COVERAGE_MIN ?= 90
@@ -190,6 +195,6 @@ install: all
 	install -m 0644 $(PC) $(DESTDIR)$(PREFIX)/lib/pkgconfig/maelys-json.pc
 
 clean:
-	rm -rf $(BUILD) $(BUILD)-asan $(BUILD)-ubsan $(BUILD)-coverage
+	rm -rf $(BUILD) $(BUILD)-asan $(BUILD)-ubsan $(BUILD)-asan-ubsan $(BUILD)-coverage
 
 -include $(OBJECTS:.o=.d)
