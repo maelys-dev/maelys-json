@@ -4,6 +4,9 @@
 
 - Move the fuzz harnesses from `fuzz/` to `tests/fuzz/`, matching maelys-http,
   maelys-egress, maelys-oci and maelys-datalog.
+- Release socle re-adopted at maelys-release v0.21.1 (from v0.15.3): the four
+  workflow pins move, nothing else; the conventions and release-mechanism
+  verdicts are green.
 - `LICENSING.md` states the CC0 terms of the installed agent blocks, names
   the vendored MIT JSONTestSuite corpus under `tests/conformance/`, and
   spells the archive `libmaelys-json.a`.
