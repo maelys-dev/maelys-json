@@ -85,16 +85,10 @@ make cmake-check   # Release CMake build, install, find_package and pkg-config c
 ```
 
 CMake is supported for consumers (`add_subdirectory`, target `maelys::json`);
-see [`docs/integration.md`](docs/integration.md).
 
 ## Documentation
 
-- [`docs/canonical-json-v1.md`](docs/canonical-json-v1.md): the byte format
-  the writer produces.
-- [`docs/security-model.md`](docs/security-model.md): what is rejected, the
-  limits, and the resource bounds.
-- [`docs/integration.md`](docs/integration.md): consuming the library from
-  maelys-git-core and maelys-cli, version pinning, migration notes.
+The documentation of maelys-json is in `maelys-dev/maelys-docs`, directory `maelys-json/`.
 
 ## Licence
 
