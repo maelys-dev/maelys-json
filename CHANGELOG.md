@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Move the fuzz harnesses from `fuzz/` to `tests/fuzz/`, matching maelys-http,
+  maelys-egress, maelys-oci and maelys-datalog.
+
 ## 0.1.4 — 2026-09-07
 
 - `maelys_json_writer_object_begin_except`: copy a parsed object minus the

@@ -42,6 +42,10 @@ HEADERS := include/maelys/json.h src/internal.h src/keyset.h \
 	src/writer_internal.h
 TEST_SOURCES := tests/main.c tests/test_parser.c tests/test_reader.c \
 	tests/test_writer.c tests/test_vectors.c tests/test_conformance.c
+# Fuzz harnesses: libFuzzer entry points, never linked into the test binary.
+FUZZ_DIR := tests/fuzz
+FUZZ_SOURCES := $(FUZZ_DIR)/fuzz_parser.c $(FUZZ_DIR)/fuzz_roundtrip.c \
+	$(FUZZ_DIR)/fuzz_writer.c
 OBJECTS := $(SOURCES:src/%.c=$(BUILD)/obj/%.o)
 LIBRARY := $(BUILD)/lib/libmaelys-json.a
 TEST := $(BUILD)/bin/test-json
@@ -110,7 +114,7 @@ check: WERROR := -Werror
 check: test lint
 	@mkdir -p $(BUILD)
 	$(CXX) $(ALL_CXXFLAGS) tests/header_cpp.cpp -c -o $(BUILD)/header-cpp.o
-	@find src include tests fuzz -type f \( -name '*.c' -o -name '*.h' \) \
+	@find src include tests -type f \( -name '*.c' -o -name '*.h' \) \
 		-exec sh -c 'for f do test "$$(wc -l < "$$f")" -le 1000 || { echo "$$f exceeds 1000 lines" >&2; exit 1; }; done' sh {} +
 	sh tools/check-version.sh
 	sh tools/check-cmake-sources.sh $(SOURCES)
@@ -122,7 +126,7 @@ check: test lint
 # cached objects, with and without NDEBUG (assertions must not be the only
 # use of a parameter).
 lint:
-	@for define in "" -DNDEBUG; do for f in $(SOURCES) $(TEST_SOURCES) fuzz/*.c tools/*.c; do \
+	@for define in "" -DNDEBUG; do for f in $(SOURCES) $(TEST_SOURCES) $(FUZZ_SOURCES) tools/*.c; do \
 		$(CC) $(CPPFLAGS) $$define $(INCLUDES) $(CSTD) $(WARNINGS) -Werror -fsyntax-only $$f || exit 1; \
 	done; done
 	@echo "lint: OK"
@@ -138,7 +142,8 @@ tidy:
 
 format:
 	@test -n "$(CLANG_FORMAT)" || { echo "clang-format not found"; exit 1; }
-	$(CLANG_FORMAT) -i $(SOURCES) $(HEADERS) $(TEST_SOURCES) tests/framework.h fuzz/*.c
+	$(CLANG_FORMAT) -i $(SOURCES) $(HEADERS) $(TEST_SOURCES) tests/framework.h \
+		$(FUZZ_SOURCES)
 
 asan:
 	$(MAKE) check BUILD=$(BUILD)-asan WERROR=-Werror \
@@ -170,21 +175,21 @@ conformance: $(TEST)
 fuzz:
 	@mkdir -p $(BUILD)/bin
 	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
-		fuzz/fuzz_parser.c $(SOURCES) -o $(BUILD)/bin/fuzz-parser
+		$(FUZZ_DIR)/fuzz_parser.c $(SOURCES) -o $(BUILD)/bin/fuzz-parser
 	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
-		fuzz/fuzz_roundtrip.c $(SOURCES) -o $(BUILD)/bin/fuzz-roundtrip
+		$(FUZZ_DIR)/fuzz_roundtrip.c $(SOURCES) -o $(BUILD)/bin/fuzz-roundtrip
 	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
-		fuzz/fuzz_writer.c $(SOURCES) -o $(BUILD)/bin/fuzz-writer
+		$(FUZZ_DIR)/fuzz_writer.c $(SOURCES) -o $(BUILD)/bin/fuzz-writer
 
 FUZZ_TIME ?= 15
 fuzz-smoke: fuzz
 	@mkdir -p $(BUILD)/corpus-parser $(BUILD)/corpus-roundtrip $(BUILD)/corpus-writer
 	$(BUILD)/bin/fuzz-parser -max_total_time=$(FUZZ_TIME) -timeout=2 \
-		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ -dict=fuzz/json.dict \
-		$(BUILD)/corpus-parser fuzz/corpus
+		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ -dict=$(FUZZ_DIR)/json.dict \
+		$(BUILD)/corpus-parser $(FUZZ_DIR)/corpus
 	$(BUILD)/bin/fuzz-roundtrip -max_total_time=$(FUZZ_TIME) -timeout=2 \
-		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ -dict=fuzz/json.dict \
-		$(BUILD)/corpus-roundtrip fuzz/corpus
+		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ -dict=$(FUZZ_DIR)/json.dict \
+		$(BUILD)/corpus-roundtrip $(FUZZ_DIR)/corpus
 	$(BUILD)/bin/fuzz-writer -max_total_time=$(FUZZ_TIME) -timeout=2 \
 		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ $(BUILD)/corpus-writer
 
