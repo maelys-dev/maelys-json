@@ -4,6 +4,10 @@
 
 - Move the fuzz harnesses from `fuzz/` to `tests/fuzz/`, matching maelys-http,
   maelys-egress, maelys-oci and maelys-datalog.
+- Add `LICENSING.md`: MPL-2.0 code, CC0 agent blocks, no redistributed
+  material in the artifacts, and `docs/canonical-json-v1.md` named as a
+  public engagement so the release socle keeps it here rather than
+  classifying it as prose to migrate.
 
 ## 0.1.4 — 2026-09-07
 
