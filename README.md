@@ -84,17 +84,18 @@ make tidy          # clang-tidy
 make cmake-check   # Release CMake build, install, find_package and pkg-config consumers
 ```
 
-CMake is supported for consumers (`add_subdirectory`, target `maelys::json`);
-see [`docs/integration.md`](docs/integration.md).
+CMake is supported for consumers (`add_subdirectory`, target `maelys::json`).
 
 ## Documentation
 
 - [`docs/canonical-json-v1.md`](docs/canonical-json-v1.md): the byte format
-  the writer produces.
-- [`docs/security-model.md`](docs/security-model.md): what is rejected, the
-  limits, and the resource bounds.
-- [`docs/integration.md`](docs/integration.md): consuming the library from
-  maelys-git-core and maelys-cli, version pinning, migration notes.
+  the writer produces, offered under CC BY 4.0 so that other implementations
+  can reuse it.
+
+The rest of the documentation — what the reader rejects and its resource
+bounds, and how to consume the library from maelys-git-core and maelys-cli —
+lives in `maelys-dev/maelys-docs`, with the documentation of the other Maelys
+products.
 
 ## Licence
 
