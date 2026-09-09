@@ -103,4 +103,5 @@ MPL-2.0 (`LICENSE`), applied file by file: every source carries an
 `SPDX-License-Identifier` header, enforced by `make check`. The canonical
 format specification in `docs/canonical-json-v1.md` and the vectors in
 `tests/vectors/` are additionally offered under CC BY 4.0 so that other
-implementations can reuse them.
+implementations can reuse them. [`LICENSING.md`](LICENSING.md) states this
+in full, including the third-party test corpus vendored under `tests/`.

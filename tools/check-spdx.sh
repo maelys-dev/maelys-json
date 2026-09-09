@@ -6,7 +6,7 @@
 # when copied on its own.
 set -eu
 status=0
-files=$(find src include tests fuzz tools -type f \( -name '*.c' -o -name '*.h' \
+files=$(find src include tests tools -type f \( -name '*.c' -o -name '*.h' \
     -o -name '*.cpp' -o -name '*.sh' \) | sort)
 for f in $files Makefile CMakeLists.txt; do
     head -2 "$f" | grep -q 'SPDX-License-Identifier: MPL-2.0' || {

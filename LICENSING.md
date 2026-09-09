@@ -4,12 +4,12 @@ Copyright 2026 Maelys Developers.
 
 ## Source code: MPL-2.0
 
-The source of `libmaelys_json`, its headers, tools, tests and examples is
+The source of `libmaelys-json`, its headers, tools, tests and examples is
 available under the Mozilla Public License 2.0. The complete terms are in
 [`LICENSE`](LICENSE), and the licence applies file by file: every source
 carries an `SPDX-License-Identifier` header, which `make check` enforces.
 
-A program that links `libmaelys_json.a`, statically or otherwise, keeps its
+A program that links `libmaelys-json.a`, statically or otherwise, keeps its
 own licence (section 3.3 of the MPL); only a modified covered file must
 remain available in Source Code Form under MPL-2.0.
 
@@ -36,6 +36,21 @@ The prose of this repository moved to `maelys-dev/maelys-docs`, directory
 `maelys-json/`, with its history. What `docs/` keeps is what this file
 engages, as the conventions of maelys-release require.
 
+## Installed agent texts: CC0-1.0
+
+The managed blocks of `AGENTS.md` and `CLAUDE.md` are installed from the
+`share/` texts of the Maelys distributions, which are dedicated to the public
+domain under CC0-1.0. They carry no licence obligation of their own.
+
 ## Redistributed material
 
-This repository vendors nothing and pins no other Maelys repository.
+The released artifacts redistribute nothing: a release ships
+`libmaelys-json.a`, `include/maelys/json.h` and `maelys-json.pc`, all written
+here, and the library has no dependency beyond the C11 standard library. This
+repository pins no other Maelys repository.
+
+One third-party set of test inputs is vendored, and reaches no artifact:
+`tests/conformance/JSONTestSuite/` is the parsing corpus of JSONTestSuite by
+Nicolas Seriot, MIT, kept byte for byte at the commit recorded in its
+`COMMIT` file, with its own `LICENSE`. The seed corpus of `tests/fuzz/` and
+the vectors of `tests/vectors/` are ours.

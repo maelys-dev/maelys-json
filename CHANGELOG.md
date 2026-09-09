@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Move the fuzz harnesses from `fuzz/` to `tests/fuzz/`, matching maelys-http,
+  maelys-egress, maelys-oci and maelys-datalog.
+- `LICENSING.md` states the CC0 terms of the installed agent blocks, names
+  the vendored MIT JSONTestSuite corpus under `tests/conformance/`, and
+  spells the archive `libmaelys-json.a`.
+
 ## 0.1.4 — 2026-09-07
 
 - `maelys_json_writer_object_begin_except`: copy a parsed object minus the
