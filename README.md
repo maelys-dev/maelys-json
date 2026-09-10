@@ -94,8 +94,8 @@ CMake is supported for consumers (`add_subdirectory`, target `maelys::json`).
 
 The rest of the documentation — what the reader rejects and its resource
 bounds, and how to consume the library from maelys-git-core and maelys-cli —
-lives in `maelys-dev/maelys-docs`, with the documentation of the other Maelys
-products.
+is not kept in this repository; it is published with the documentation of the
+other Maelys products.
 
 ## Licence
 
