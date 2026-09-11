@@ -49,7 +49,7 @@ change to any of them is a format change: bump the version, update
 
 ## Releases
 
-1. Update `VERSION`, the version macros in `include/maelys/json.h` and the
-   changelog section.
-2. `make check asan ubsan fuzz-smoke`.
-3. Tag `v<version>`. Consumers pin that tag.
+See [`RELEASING.md`](RELEASING.md). `VERSION` is the source of truth;
+`tools/sync-version.sh` regenerates the header macros from it and
+`tools/check-version.sh` fails `make check` when they drift. Consumers pin
+the tag.
