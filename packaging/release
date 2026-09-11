@@ -1,0 +1,12 @@
+# What this product publishes, read by maelys-release (docs/conventions.md,
+# "Packaging"). The socle renders it into release.yml; nothing here is a
+# workflow. Targets, archive kinds, channels and gate keep the socle's
+# defaults: a static library on the three native targets, no registry.
+
+# The version is materialised twice: VERSION, and the MAELYS_JSON_VERSION_*
+# macros of include/maelys/json.h that consumers static_assert on.
+# tools/check-version.sh fails make check when they drift; cut runs this
+# command between writing VERSION and the bump commit, so the header joins
+# the commit and the checks of that commit can be green.
+[cut]
+after-version sh tools/sync-version.sh

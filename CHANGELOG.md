@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- `packaging/release` declares `[cut] after-version sh tools/sync-version.sh`:
+  the new script regenerates the header version macros from `VERSION`, so
+  `maelys-release cut` can carry a release whose version lives in two files.
+  `RELEASING.md` describes both the `cut` and the by-hand ceremonies, the
+  three post-release checks and the replay from the tag ref.
+
 ## 0.1.6 — 2026-09-11
 
 - `maelys_json_value_pointer`: RFC 6901 JSON Pointer of any value of a parsed
