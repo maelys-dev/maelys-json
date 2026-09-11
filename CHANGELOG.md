@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.6 — 2026-09-11
 
 - `maelys_json_value_pointer`: RFC 6901 JSON Pointer of any value of a parsed
   document, for diagnostics of semantic errors (wrong type, out of range).
@@ -12,6 +12,8 @@
   before display; `maelys-json-canon` now prints the pointer as an
   ASCII-escaped JSON string instead of raw bytes (a key holding U+001B
   reached the terminal unescaped). Reported by the maelys-cli integration.
+- Release socle re-adopted at maelys-release v0.35.0 (from v0.29.0); the CI
+  runs once per pull-request push instead of twice.
 
 ## 0.1.5 — 2026-09-10
 
