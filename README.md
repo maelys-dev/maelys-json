@@ -21,13 +21,14 @@ Maelys security contracts. C11, no dependency, opaque ABI, no global state.
 ```c
 #include <maelys/json.h>
 
+/* Read the file yourself, bounded: the document keeps its own copy, and
+ * the bytes you hold are what locates a failure. */
+char *bytes;
+size_t size;                         /* your bounded reader */
 maelys_json_document_t *document;
 maelys_json_error_t error;
-char *bytes;      /* the file as read, kept so a failure can be located */
-size_t size;
-if (maelys_json_document_parse_file_bytes("config.json",
-        MAELYS_JSON_PROFILE_RFC8259, NULL, &document, &error, &bytes, &size)
-        != MAELYS_JSON_OK) {
+if (maelys_json_document_parse(bytes, size, MAELYS_JSON_PROFILE_RFC8259,
+        NULL, &document, &error) != MAELYS_JSON_OK) {
     char message[128], pointer[128];
     maelys_json_error_format(&error, message, sizeof message);
     /* "line 3, column 4 (offset 12): duplicate object key" */
@@ -36,18 +37,12 @@ if (maelys_json_document_parse_file_bytes("config.json",
     free(bytes);
     return 1;
 }
-free(bytes);      /* the document owns its own copy */
+free(bytes);
 maelys_json_value_t root = maelys_json_document_root(document);
 maelys_json_view_t name;
 uint64_t retries;
 maelys_json_object_get_string(document, root, "name", &name);   /* name.data is NUL-terminated */
-if (maelys_json_object_get_u64(document, root, "retries", &retries) != MAELYS_JSON_OK) {
-    maelys_json_value_t bad;
-    char pointer[128];
-    maelys_json_object_get(document, root, "retries", &bad);
-    maelys_json_value_pointer(document, bad, pointer, sizeof pointer);
-    /* "/retries": the document parsed, the member has the wrong type */
-}
+maelys_json_object_get_u64(document, root, "retries", &retries);
 
 maelys_json_writer_t *writer;
 maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL,
@@ -78,7 +73,8 @@ maelys_json_document_release(document);
 ```
 
 Every function's contract is documented in
-[`include/maelys/json.h`](include/maelys/json.h).
+[`include/maelys/json.h`](include/maelys/json.h). `maelys_json_document_parse_file`
+reads a trusted local file for you when no position diagnostic is needed.
 
 ## Build and gates
 

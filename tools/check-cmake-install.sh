@@ -22,7 +22,7 @@ cat > "$work/consumer/main.c" <<'C'
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-static_assert(MAELYS_JSON_ABI_VERSION == 1u, "maelys-json ABI mismatch");
+static_assert(MAELYS_JSON_ABI_VERSION == 2u, "maelys-json ABI mismatch");
 int main(void) {
     maelys_json_document_t *document = NULL;
     const char text[] = "{\"a\":[1,2]}";

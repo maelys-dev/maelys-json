@@ -459,67 +459,6 @@ static int parse_file(void) {
     return 0;
 }
 
-static int parse_file_bytes(void) {
-    char path[512];
-    snprintf(path, sizeof(path), "%s/08-contract-ascii.json",
-        test_vectors_directory());
-    maelys_json_document_t *document = NULL;
-    maelys_json_error_t error;
-    char *bytes = (char *)1;
-    size_t size = 9u;
-    CHECK_RESULT(maelys_json_document_parse_file_bytes(path,
-        MAELYS_JSON_PROFILE_RFC8259, NULL, &document, &error, &bytes, &size),
-        MAELYS_JSON_OK);
-    CHECK(bytes != NULL && size > 0u && bytes[size] == '\0');
-    FILE *stream = fopen(path, "rb");
-    CHECK(stream != NULL);
-    char expected[256];
-    size_t expected_size = fread(expected, 1u, sizeof(expected), stream);
-    fclose(stream);
-    CHECK(size == expected_size && memcmp(bytes, expected, size) == 0);
-    free(bytes);
-    maelys_json_document_release(document);
-
-    /* A file that fails to parse still yields its bytes, so the failing
-     * value can be named. */
-    char rejected[512];
-    snprintf(rejected, sizeof(rejected), "%s/n_array_1_true_without_comma.json",
-        test_suite_directory());
-    document = (maelys_json_document_t *)1;
-    CHECK_RESULT(maelys_json_document_parse_file_bytes(rejected,
-        MAELYS_JSON_PROFILE_RFC8259, NULL, &document, &error, &bytes, &size),
-        MAELYS_JSON_ERR_SYNTAX);
-    CHECK(document == NULL && bytes != NULL && size == strlen("[1 true]"));
-    /* "[1 true]" fails where the delimiter after element 0 was expected,
-     * so the pointer names that element. */
-    char pointer[32];
-    CHECK(maelys_json_error_pointer(bytes, size, &error, pointer,
-        sizeof(pointer)) == 2u);
-    CHECK(strcmp(pointer, "/0") == 0);
-    free(bytes);
-
-    /* Read failures hand out nothing. */
-    bytes = (char *)1;
-    size = 9u;
-    CHECK_RESULT(maelys_json_document_parse_file_bytes("tests/vectors/missing.json",
-        MAELYS_JSON_PROFILE_RFC8259, NULL, &document, &error, &bytes, &size),
-        MAELYS_JSON_ERR_IO);
-    CHECK(bytes == NULL && size == 0u);
-    maelys_json_limits_t limits = {.maximum_bytes = 4u};
-    bytes = (char *)1;
-    CHECK_RESULT(maelys_json_document_parse_file_bytes(path,
-        MAELYS_JSON_PROFILE_RFC8259, &limits, &document, &error, &bytes, &size),
-        MAELYS_JSON_ERR_LIMIT);
-    CHECK(bytes == NULL && size == 0u);
-    CHECK_RESULT(maelys_json_document_parse_file_bytes(path,
-        MAELYS_JSON_PROFILE_RFC8259, NULL, &document, &error, NULL, &size),
-        MAELYS_JSON_ERR_ARGUMENT);
-    CHECK_RESULT(maelys_json_document_parse_file_bytes(path,
-        MAELYS_JSON_PROFILE_RFC8259, NULL, &document, &error, &bytes, NULL),
-        MAELYS_JSON_ERR_ARGUMENT);
-    return 0;
-}
-
 static const test_case_t cases[] = {
     {"rfc_document", rfc_document},
     {"contract_profile", contract_profile},
@@ -538,7 +477,6 @@ static const test_case_t cases[] = {
     {"error_format", error_format},
     {"error_pointer", error_pointer},
     {"parse_file", parse_file},
-    {"parse_file_bytes", parse_file_bytes},
 };
 
 TEST_SUITE(test_parser_suite, cases)

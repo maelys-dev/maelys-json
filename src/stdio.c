@@ -18,24 +18,20 @@ static maelys_json_result_t read_stream(
     return MAELYS_JSON_OK;
 }
 
-maelys_json_result_t maelys_json_document_parse_file_bytes(
+maelys_json_result_t maelys_json_document_parse_file(
     const char *path, maelys_json_profile_t profile,
     const maelys_json_limits_t *requested_limits,
-    maelys_json_document_t **out_document, maelys_json_error_t *out_error,
-    char **out_bytes, size_t *out_size) {
+    maelys_json_document_t **out_document, maelys_json_error_t *out_error) {
     if (out_error) {
         *out_error = (maelys_json_error_t){0};
     }
     maelys_json_limits_t limits;
-    if (!path || !out_document || !out_bytes || !out_size ||
-        !maelys_json_profile_valid(profile) ||
+    if (!path || !out_document || !maelys_json_profile_valid(profile) ||
         maelys_json_limits_resolve(requested_limits, &limits) != MAELYS_JSON_OK) {
         maelys_json_error_set(out_error, MAELYS_JSON_ERR_ARGUMENT, NULL, 0u, 0u);
         return MAELYS_JSON_ERR_ARGUMENT;
     }
     *out_document = NULL;
-    *out_bytes = NULL;
-    *out_size = 0u;
     FILE *stream = fopen(path, "rb");
     if (!stream) {
         maelys_json_error_set(out_error, MAELYS_JSON_ERR_IO, NULL, 0u, 0u);
@@ -64,24 +60,9 @@ maelys_json_result_t maelys_json_document_parse_file_bytes(
         free(buffer);
         return result;
     }
-    /* size <= maximum_bytes < capacity, so the terminator fits. */
-    buffer[size] = '\0';
     result = maelys_json_document_parse(buffer, size, profile, &limits,
         out_document, out_error);
-    *out_bytes = buffer;
-    *out_size = size;
-    return result;
-}
-
-maelys_json_result_t maelys_json_document_parse_file(
-    const char *path, maelys_json_profile_t profile,
-    const maelys_json_limits_t *limits, maelys_json_document_t **out_document,
-    maelys_json_error_t *out_error) {
-    char *bytes = NULL;
-    size_t size = 0u;
-    maelys_json_result_t result = maelys_json_document_parse_file_bytes(path,
-        profile, limits, out_document, out_error, &bytes, &size);
-    free(bytes);
+    free(buffer);
     return result;
 }
 

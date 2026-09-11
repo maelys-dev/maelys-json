@@ -1,7 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-09-11
 
+- **Removed** `maelys_json_value_pointer` and
+  `maelys_json_document_parse_file_bytes`, added in 0.1.6 on a perceived
+  gap in the API rather than on a consumer's need: neither maelys-cli nor
+  maelys-git-core has a call for them (flat manifests, files read by the
+  consumer's own bounded reader). `MAELYS_JSON_ABI_VERSION` is now 2; the
+  CMake package treats 0.2.x as incompatible with 0.1.x. The README example
+  shows the real pattern: read the bytes yourself, parse, locate a failure
+  with `maelys_json_error_pointer`.
+- The fuzz smoke run is delegated to the socle's `check-product.yml` job
+  through `fuzz_command`; the product's own CI job is gone. The nightly
+  workflow keeps the long runs.
 - `packaging/release` declares `[cut] after-version sh tools/sync-version.sh`:
   the new script regenerates the header version macros from `VERSION`, so
   `maelys-release cut` can carry a release whose version lives in two files.

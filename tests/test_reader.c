@@ -197,61 +197,6 @@ static int invalid_handles(void) {
     return 0;
 }
 
-static int pointer_of(const maelys_json_document_t *document,
-    maelys_json_value_t value, const char *expected) {
-    char pointer[128];
-    size_t length = maelys_json_value_pointer(document, value, pointer,
-        sizeof(pointer));
-    if (length != strlen(expected) || strcmp(pointer, expected) != 0) {
-        fprintf(stderr, "    value %zu -> \"%s\" (len %zu), expected \"%s\"\n",
-            value, pointer, length, expected);
-        return 1;
-    }
-    return 0;
-}
-
-static int value_pointer(void) {
-    maelys_json_document_t *document = NULL;
-    CHECK_RESULT(parse_text(
-        "{\"a\":[{\"b~/c\":{\"d\":[1,2,{\"e\":null}]}},[],7],\"\":true,\"\\u00e9\":0}",
-        MAELYS_JSON_PROFILE_RFC8259, NULL, &document, NULL), MAELYS_JSON_OK);
-    maelys_json_value_t a, a0, bc, d, d2, e, empty, accent, seven;
-    CHECK_RESULT(maelys_json_object_get(document, 0u, "a", &a), MAELYS_JSON_OK);
-    CHECK_RESULT(maelys_json_array_get(document, a, 0u, &a0), MAELYS_JSON_OK);
-    CHECK_RESULT(maelys_json_object_get(document, a0, "b~/c", &bc), MAELYS_JSON_OK);
-    CHECK_RESULT(maelys_json_object_get(document, bc, "d", &d), MAELYS_JSON_OK);
-    CHECK_RESULT(maelys_json_array_get(document, d, 2u, &d2), MAELYS_JSON_OK);
-    CHECK_RESULT(maelys_json_object_get(document, d2, "e", &e), MAELYS_JSON_OK);
-    CHECK_RESULT(maelys_json_object_get(document, 0u, "", &empty), MAELYS_JSON_OK);
-    CHECK_RESULT(maelys_json_object_get(document, 0u, "\xc3\xa9", &accent), MAELYS_JSON_OK);
-    CHECK_RESULT(maelys_json_array_get(document, a, 2u, &seven), MAELYS_JSON_OK);
-    CHECK(pointer_of(document, 0u, "") == 0);
-    CHECK(pointer_of(document, a, "/a") == 0);
-    CHECK(pointer_of(document, a0, "/a/0") == 0);
-    CHECK(pointer_of(document, bc, "/a/0/b~0~1c") == 0);
-    CHECK(pointer_of(document, d, "/a/0/b~0~1c/d") == 0);
-    CHECK(pointer_of(document, d2, "/a/0/b~0~1c/d/2") == 0);
-    CHECK(pointer_of(document, e, "/a/0/b~0~1c/d/2/e") == 0);
-    CHECK(pointer_of(document, seven, "/a/2") == 0);
-    CHECK(pointer_of(document, empty, "/") == 0);
-    CHECK(pointer_of(document, accent, "/\xc3\xa9") == 0);
-    /* A key token names its member; the key of "a" is token 1. */
-    CHECK(maelys_json_value_type(document, 1u) == MAELYS_JSON_TYPE_STRING);
-    CHECK(pointer_of(document, 1u, "/a") == 0);
-    /* Truncation and degenerate arguments behave like snprintf. */
-    char small[6];
-    CHECK(maelys_json_value_pointer(document, e, small, sizeof(small)) ==
-        strlen("/a/0/b~0~1c/d/2/e"));
-    CHECK(strcmp(small, "/a/0/") == 0);
-    CHECK(maelys_json_value_pointer(document, e, NULL, 0u) ==
-        strlen("/a/0/b~0~1c/d/2/e"));
-    CHECK(maelys_json_value_pointer(document, 9999u, small, sizeof(small)) == 0u);
-    CHECK(small[0] == '\0');
-    CHECK(maelys_json_value_pointer(NULL, 0u, small, sizeof(small)) == 0u);
-    maelys_json_document_release(document);
-    return 0;
-}
-
 static int version(void) {
     CHECK(strcmp(maelys_json_version(), MAELYS_JSON_VERSION_STRING) == 0);
     char expected[32];
@@ -268,7 +213,6 @@ static const test_case_t cases[] = {
     {"nested_containers", nested_containers},
     {"helpers", helpers},
     {"invalid_handles", invalid_handles},
-    {"value_pointer", value_pointer},
     {"version", version},
 };
 

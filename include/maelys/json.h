@@ -40,7 +40,7 @@ extern "C" {
 
 /* Incremented whenever a public type, enumerator value or symbol changes
  * incompatibly. Consumers may static_assert on it. */
-#define MAELYS_JSON_ABI_VERSION 1u
+#define MAELYS_JSON_ABI_VERSION 2u
 
 /* Values used when a maelys_json_limits_t field is zero or the pointer is
  * NULL. */
@@ -171,26 +171,15 @@ maelys_json_result_t maelys_json_document_parse(
  * Reads a whole file, bounded by maximum_bytes, then parses it.
  * Errors: those of maelys_json_document_parse, plus IO (open or read
  * failure) and LIMIT when the file exceeds maximum_bytes.
- * The caller never sees the bytes, so maelys_json_error_pointer cannot be
- * applied to a failure: use maelys_json_document_parse_file_bytes for that.
+ * A convenience for a trusted local file. The caller never sees the bytes,
+ * so maelys_json_error_pointer cannot locate a failure: when a diagnostic
+ * or a trust boundary is involved, read the file yourself, bounded, and
+ * call maelys_json_document_parse.
  */
 maelys_json_result_t maelys_json_document_parse_file(
     const char *path, maelys_json_profile_t profile,
     const maelys_json_limits_t *limits, maelys_json_document_t **out_document,
     maelys_json_error_t *out_error);
-
-/*
- * Same as maelys_json_document_parse_file, but hands the bytes it read to
- * the caller. Whenever the file was read within maximum_bytes, *out_bytes is
- * a NUL-terminated buffer the caller releases with free() and *out_size its
- * size, whether or not parsing succeeded, so that maelys_json_error_pointer
- * can name the failing value. When reading itself failed (IO, MEMORY, or a
- * file above maximum_bytes), *out_bytes is NULL and *out_size is 0.
- */
-maelys_json_result_t maelys_json_document_parse_file_bytes(
-    const char *path, maelys_json_profile_t profile,
-    const maelys_json_limits_t *limits, maelys_json_document_t **out_document,
-    maelys_json_error_t *out_error, char **out_bytes, size_t *out_size);
 
 /*
  * Reports whether the bytes the document was parsed from are exactly its
@@ -424,9 +413,10 @@ size_t maelys_json_error_format(
  * `bytes` and `size` must be the very buffer and size the failing parse
  * saw, still alive: the function rescans it up to error->offset. Freeing or
  * modifying that buffer before this call is undefined behaviour that no
- * test catches; compute the pointer before releasing the input. With
- * maelys_json_document_parse_file the caller never holds the bytes: use
- * maelys_json_document_parse_file_bytes.
+ * test catches; compute the pointer before releasing the input.
+ * maelys_json_document_parse_file never hands the bytes out: read the file
+ * yourself and call maelys_json_document_parse when a failure must be
+ * located.
  *
  * Warning: the pointer carries the decoded keys of the path, which are
  * attacker-controlled input and may contain any UTF-8, control characters
@@ -439,21 +429,6 @@ size_t maelys_json_error_format(
  */
 size_t maelys_json_error_pointer(
     const void *bytes, size_t size, const maelys_json_error_t *error,
-    char *buffer, size_t capacity);
-
-/*
- * Computes the RFC 6901 JSON Pointer of `value` inside its parsed document:
- * "" for the root, "/commands/3/payload" for a nested member. This is the
- * function for semantic errors: the document parsed, but a member has the
- * wrong type or an out-of-range value, and the diagnostic must name it.
- * The warning of maelys_json_error_pointer applies: keys are input, escape
- * before display. Written NUL-terminated and truncated to `capacity`;
- * returns the untruncated length. An invalid handle yields 0 and an empty
- * buffer, exactly like the root: check maelys_json_value_type first when
- * the difference matters.
- */
-size_t maelys_json_value_pointer(
-    const maelys_json_document_t *document, maelys_json_value_t value,
     char *buffer, size_t capacity);
 
 #ifdef __cplusplus

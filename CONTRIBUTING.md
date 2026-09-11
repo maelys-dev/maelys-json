@@ -29,6 +29,13 @@ canonicalize times; compare two runs on the same machine before and after a
 parser change. The `fuzz-nightly` workflow fuzzes 20 minutes per harness
 every night with a corpus kept in the CI cache.
 
+## Public API
+
+A public function is born of a named caller or a demonstrated defect, never
+of a gap perceived in the API. Name the consumer in the changelog entry. Two
+functions were added in 0.1.6 without one and removed in 0.2.0 for zero
+callers; that cost an ABI bump for nothing.
+
 ## Style
 
 Formatting follows `.clang-format` (`make format`). Every control statement

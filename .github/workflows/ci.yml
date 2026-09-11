@@ -14,6 +14,7 @@ jobs:
     uses: maelys-dev/maelys-release/.github/workflows/check-product.yml@12ac509405c9d79087412fe3d289e4e14b3bb329 # v0.35.0
     with:
       product: maelys-json
+      fuzz_command: make fuzz-smoke FUZZ_CC=clang FUZZ_TIME=30
 
   check-matrix:
     strategy:
@@ -50,14 +51,6 @@ jobs:
       - run: cmake --build build-cmake
       - run: ctest --test-dir build-cmake --output-on-failure
       - run: make cmake-check
-
-  fuzz:
-    runs-on: ubuntu-latest
-    env:
-      CC: clang
-    steps:
-      - uses: actions/checkout@v4
-      - run: make fuzz-smoke FUZZ_CC=clang FUZZ_TIME=30
 
   jcs-differential:
     runs-on: ubuntu-latest
