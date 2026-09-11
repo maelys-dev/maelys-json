@@ -2,7 +2,7 @@
 /* The public header must compile as C++17 and expose stable version data. */
 #include "maelys/json.h"
 
-static_assert(MAELYS_JSON_ABI_VERSION == 1u, "unexpected ABI");
+static_assert(MAELYS_JSON_ABI_VERSION == 2u, "unexpected ABI");
 static_assert(MAELYS_JSON_VERSION_MAJOR == 0, "unexpected major version");
 static_assert(MAELYS_JSON_MAXIMUM_DEPTH >= MAELYS_JSON_DEFAULT_MAXIMUM_DEPTH,
     "ceiling below default");
