@@ -38,6 +38,25 @@ static char *read_stdin(size_t *out_size) {
     return buffer;
 }
 
+/* Prints text as a JSON string literal with every non-ASCII and control
+ * character escaped: the keys inside a pointer are input, never safe for a
+ * terminal. The library's own writer does the escaping. */
+static void print_escaped(const char *text) {
+    maelys_json_writer_t *writer = NULL;
+    char *bytes = NULL;
+    size_t size = 0u;
+    if (maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL,
+            MAELYS_JSON_WRITER_ASCII, &writer) == MAELYS_JSON_OK &&
+        maelys_json_writer_string_cstr(writer, text) == MAELYS_JSON_OK &&
+        maelys_json_writer_finish(writer, &bytes, &size) == MAELYS_JSON_OK) {
+        fwrite(bytes, 1u, size, stderr);
+    } else {
+        fputs("(pointer not printable)", stderr);
+    }
+    free(bytes);
+    maelys_json_writer_release(writer);
+}
+
 static int parse_arguments(int argc, char **argv, maelys_json_profile_t *profile,
     unsigned int *flags, int *check) {
     for (int i = 1; i < argc; ++i) {
@@ -86,7 +105,9 @@ int main(int argc, char **argv) {
         char pointer[256];
         maelys_json_error_format(&error, message, sizeof(message));
         maelys_json_error_pointer(input, size, &error, pointer, sizeof(pointer));
-        fprintf(stderr, "%s at \"%s\"\n", message, pointer);
+        fprintf(stderr, "%s at ", message);
+        print_escaped(pointer);
+        fputc('\n', stderr);
         free(input);
         return 2;
     }

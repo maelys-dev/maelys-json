@@ -8,6 +8,12 @@ const char *test_vectors_directory(void) {
     return directory && *directory ? directory : "tests/vectors";
 }
 
+const char *test_suite_directory(void) {
+    const char *directory = getenv("MAELYS_JSON_TEST_SUITE");
+    return directory && *directory ? directory :
+        "tests/conformance/JSONTestSuite/test_parsing";
+}
+
 static int run_suite(test_suite_t suite, size_t *out_failures) {
     size_t failures = 0u;
     for (size_t i = 0u; i < suite.count; ++i) {

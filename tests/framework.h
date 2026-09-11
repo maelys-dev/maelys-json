@@ -63,6 +63,8 @@ static inline maelys_json_result_t parse_text(
 
 /* Directory holding the canonical vectors (MAELYS_JSON_VECTORS). */
 const char *test_vectors_directory(void);
+/* Directory holding the JSONTestSuite corpus (MAELYS_JSON_TEST_SUITE). */
+const char *test_suite_directory(void);
 
 test_suite_t test_parser_suite(void);
 test_suite_t test_reader_suite(void);

@@ -8,6 +8,8 @@
 #include <stdlib.h>
 
 static void walk(const maelys_json_document_t *document, maelys_json_value_t value) {
+    char pointer[256];
+    (void)maelys_json_value_pointer(document, value, pointer, sizeof(pointer));
     size_t count;
     maelys_json_view_t view;
     uint64_t u;
