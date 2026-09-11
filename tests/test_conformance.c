@@ -137,13 +137,8 @@ static int check_suite_file(const char *directory, const char *name,
     return failed;
 }
 
-#define VENDORED_SUITE "tests/conformance/JSONTestSuite/test_parsing"
-
 static int json_test_suite(void) {
-    const char *directory = getenv("MAELYS_JSON_TEST_SUITE");
-    if (!directory || !*directory) {
-        directory = VENDORED_SUITE;
-    }
+    const char *directory = test_suite_directory();
     DIR *handle = opendir(directory);
     if (!handle) {
         fprintf(stderr, "    cannot open JSONTestSuite corpus at %s\n", directory);

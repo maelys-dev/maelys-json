@@ -23,20 +23,31 @@ Maelys security contracts. C11, no dependency, opaque ABI, no global state.
 
 maelys_json_document_t *document;
 maelys_json_error_t error;
-if (maelys_json_document_parse_file("config.json", MAELYS_JSON_PROFILE_RFC8259,
-        NULL, &document, &error) != MAELYS_JSON_OK) {
-    char message[128];
+char *bytes;      /* the file as read, kept so a failure can be located */
+size_t size;
+if (maelys_json_document_parse_file_bytes("config.json",
+        MAELYS_JSON_PROFILE_RFC8259, NULL, &document, &error, &bytes, &size)
+        != MAELYS_JSON_OK) {
+    char message[128], pointer[128];
     maelys_json_error_format(&error, message, sizeof message);
     /* "line 3, column 4 (offset 12): duplicate object key" */
-    /* maelys_json_error_pointer(bytes, size, &error, ...) adds the JSON
-     * Pointer of the failing value, e.g. "/commands/3/payload". */
+    maelys_json_error_pointer(bytes, size, &error, pointer, sizeof pointer);
+    /* "/commands/3/payload"; its keys are input: escape before printing */
+    free(bytes);
     return 1;
 }
+free(bytes);      /* the document owns its own copy */
 maelys_json_value_t root = maelys_json_document_root(document);
 maelys_json_view_t name;
 uint64_t retries;
 maelys_json_object_get_string(document, root, "name", &name);   /* name.data is NUL-terminated */
-maelys_json_object_get_u64(document, root, "retries", &retries);
+if (maelys_json_object_get_u64(document, root, "retries", &retries) != MAELYS_JSON_OK) {
+    maelys_json_value_t bad;
+    char pointer[128];
+    maelys_json_object_get(document, root, "retries", &bad);
+    maelys_json_value_pointer(document, bad, pointer, sizeof pointer);
+    /* "/retries": the document parsed, the member has the wrong type */
+}
 
 maelys_json_writer_t *writer;
 maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL,

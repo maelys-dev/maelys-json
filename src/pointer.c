@@ -188,3 +188,54 @@ size_t maelys_json_error_pointer(
     emit_finish(&emitter);
     return emitter.length;
 }
+
+/* Position of `child` among the children of the container `parent`. */
+static size_t child_position(
+    const maelys_json_document_t *document, size_t parent, size_t child) {
+    const maelys_json_token_t *container = &document->tokens[parent];
+    const size_t *children = document->children + container->children_offset;
+    size_t position = 0u;
+    while (position < container->links.child_count &&
+           children[position] != child) {
+        ++position;
+    }
+    /* Every token but the root is listed under its parent. */
+    MAELYS_JSON_ASSERT(position < container->links.child_count);
+    return position;
+}
+
+size_t maelys_json_value_pointer(
+    const maelys_json_document_t *document, maelys_json_value_t value,
+    char *buffer, size_t capacity) {
+    emitter_t emitter = {.buffer = buffer, .capacity = buffer ? capacity : 0u};
+    if (!document || value >= document->token_count) {
+        emit_finish(&emitter);
+        return 0u;
+    }
+    /* The value and its ancestors, innermost first; bounded by the depth
+     * ceiling plus the value itself. */
+    size_t chain[MAELYS_JSON_MAXIMUM_DEPTH + 2u];
+    size_t count = 0u;
+    for (size_t current = value; current != MAELYS_JSON_VALUE_NONE;
+         current = document->tokens[current].links.parent) {
+        MAELYS_JSON_ASSERT(count < sizeof(chain) / sizeof(chain[0]));
+        chain[count++] = current;
+    }
+    for (size_t i = count - 1u; i > 0u; --i) {
+        size_t parent = chain[i];
+        size_t child = chain[i - 1u];
+        size_t position = child_position(document, parent, child);
+        if (document->tokens[parent].type == MAELYS_JSON_TYPE_OBJECT) {
+            /* Members alternate key, value: a value's key precedes it. */
+            size_t key = document->tokens[child].object_key ? child :
+                document->children[document->tokens[parent].children_offset +
+                    position - 1u];
+            emit_token(&emitter, document->tokens[key].text,
+                document->tokens[key].text_size);
+        } else {
+            emit_index(&emitter, position);
+        }
+    }
+    emit_finish(&emitter);
+    return emitter.length;
+}

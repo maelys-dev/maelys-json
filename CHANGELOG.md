@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- `maelys_json_value_pointer`: RFC 6901 JSON Pointer of any value of a parsed
+  document, for diagnostics of semantic errors (wrong type, out of range).
+- `maelys_json_document_parse_file_bytes`: like `parse_file`, but hands the
+  bytes read to the caller, so `maelys_json_error_pointer` can be applied to
+  a file that failed to parse.
+- `maelys_json_error_pointer` is documented as requiring the live input
+  buffer, and its output as carrying attacker-controlled keys to escape
+  before display; `maelys-json-canon` now prints the pointer as an
+  ASCII-escaped JSON string instead of raw bytes (a key holding U+001B
+  reached the terminal unescaped). Reported by the maelys-cli integration.
+
 ## 0.1.5 — 2026-09-10
 
 - Move the fuzz harnesses from `fuzz/` to `tests/fuzz/`, matching maelys-http,
