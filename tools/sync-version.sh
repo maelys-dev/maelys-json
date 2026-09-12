@@ -4,7 +4,7 @@
 # The version is materialised twice, in VERSION and in the public header;
 # tools/check-version.sh fails make check when they drift, and this script
 # is what closes the gap. maelys-release cut runs it between writing VERSION
-# and the bump commit (packaging/release, [cut] after-version), so the header
+# and the bump commit (maelys-release.conf, [cut] after-version), so the header
 # joins that commit. Usage: sync-version.sh [--check]; --check only reports.
 set -eu
 header=include/maelys/json.h
