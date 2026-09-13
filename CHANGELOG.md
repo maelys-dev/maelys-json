@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- CI: the compiler matrix no longer builds its own ASan and UBSan trees; the
+  socle's `sanitizers` job (`make asan-ubsan`, Linux x86_64, clang) is the
+  one instrumented build per pull request, six fewer builds per run. The
+  matrix keeps `make check` on gcc, clang and Apple clang. Reported by the
+  fleet observer.
 - Release socle re-adopted at maelys-release v0.44.0 (from v0.35.0): the three
   workflow pins move, the managed agent blocks take the corrected replay rule
   (`--ref vX.Y.Z`; a socle at fault calls for a patch release, not a replay),
