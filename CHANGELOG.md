@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Release socle re-adopted at maelys-release v0.44.0 (from v0.35.0): the three
+  workflow pins move, the managed agent blocks take the corrected replay rule
+  (`--ref vX.Y.Z`; a socle at fault calls for a patch release, not a replay),
+  and the `[cut]` declaration moves from `packaging/release` to
+  `maelys-release.conf` at the root, where socle 0.37.0 reads it.
+
 ## 0.2.0 — 2026-09-11
 
 - **Removed** `maelys_json_value_pointer` and
