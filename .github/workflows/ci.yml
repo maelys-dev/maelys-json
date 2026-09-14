@@ -11,7 +11,7 @@ on:
 # line current. The jobs below it are this product's own.
 jobs:
   check:
-    uses: maelys-dev/maelys-release/.github/workflows/check-product.yml@a57c25b4429f22af3dfd3edd0a72b2d0514be19f # v0.44.0
+    uses: maelys-dev/maelys-release/.github/workflows/check-product.yml@7cf18702371d7024528bb314790632f0196e06de # v0.50.1
     with:
       product: maelys-json
       fuzz_command: make fuzz-smoke FUZZ_CC=clang FUZZ_TIME=30
