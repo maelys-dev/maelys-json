@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Release socle re-adopted at maelys-release v0.56.0 (from v0.50.1): the three
+  workflow pins move and the managed agent blocks change prose only. The
+  socle renamed its CI legs (`check / check (linux)`, `(linux-arm64)`,
+  `(macos)` instead of the runner labels), so the branch protection of
+  `main` was narrowed with `protect --without-legs`, then re-derived with
+  `protect --apply` after the adoption, as the socle asks.
 - Release socle re-adopted at maelys-release v0.50.1 (from v0.44.0): the three
   workflow pins move and the managed agent blocks name the second managed
   dependency script; nothing here declares dependencies, channels or a
