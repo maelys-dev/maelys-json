@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Release socle re-adopted at maelys-release v0.50.1 (from v0.44.0): the three
+  workflow pins move and the managed agent blocks name the second managed
+  dependency script; nothing here declares dependencies, channels or a
+  `[commit]` rule, so no declaration changes.
 - CI: the compiler matrix no longer builds its own ASan and UBSan trees; the
   socle's `sanitizers` job (`make asan-ubsan`, Linux x86_64, clang) is the
   one instrumented build per pull request, six fewer builds per run. The
