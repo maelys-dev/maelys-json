@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Release socle re-adopted at maelys-release v0.57.0 (from v0.56.0): the three
+  workflow pins move and the managed agent blocks change prose only. The
+  socle's CI reports its pre-0.54.0 leg names again as short alias jobs;
+  `main` already requires the new names, so its protection is unchanged.
 - Release socle re-adopted at maelys-release v0.56.0 (from v0.50.1): the three
   workflow pins move and the managed agent blocks change prose only. The
   socle renamed its CI legs (`check / check (linux)`, `(linux-arm64)`,
