@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Release socle re-adopted at maelys-release v0.57.1 (from v0.57.0): the three
+  workflow pins move, nothing else; `protect` has nothing to write on `main`.
 - Release socle re-adopted at maelys-release v0.57.0 (from v0.56.0): the three
   workflow pins move and the managed agent blocks change prose only. The
   socle's CI reports its pre-0.54.0 leg names again as short alias jobs;
