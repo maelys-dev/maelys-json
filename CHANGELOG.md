@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Release socle re-adopted at maelys-release v0.63.1 (from v0.57.1): the three
+  workflow pins move, and the managed blocks of `AGENTS.md` and `CLAUDE.md`
+  stop naming the private documentation repository, as socle 0.58.0 asks of
+  public repositories and 0.61.0 refuses outright. `LICENSING.md` stops
+  naming it too. The socle CI drops its three leg aliases (0.60.0), which
+  `main` never required.
 - Release socle re-adopted at maelys-release v0.57.1 (from v0.57.0): the three
   workflow pins move, nothing else; `protect` has nothing to write on `main`.
 - Release socle re-adopted at maelys-release v0.57.0 (from v0.56.0): the three
