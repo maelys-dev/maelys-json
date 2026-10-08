@@ -34,9 +34,9 @@ extern "C" {
 
 /* Release version, mirrored from the VERSION file (checked by `make check`). */
 #define MAELYS_JSON_VERSION_MAJOR 0
-#define MAELYS_JSON_VERSION_MINOR 2
+#define MAELYS_JSON_VERSION_MINOR 3
 #define MAELYS_JSON_VERSION_PATCH 0
-#define MAELYS_JSON_VERSION_STRING "0.2.0"
+#define MAELYS_JSON_VERSION_STRING "0.3.0"
 
 /* Incremented whenever a public type, enumerator value or symbol changes
  * incompatibly. Consumers may static_assert on it. */
