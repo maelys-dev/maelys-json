@@ -45,7 +45,7 @@ TEST_SOURCES := tests/main.c tests/test_parser.c tests/test_reader.c \
 # Fuzz harnesses: libFuzzer entry points, never linked into the test binary.
 FUZZ_DIR := tests/fuzz
 FUZZ_SOURCES := $(FUZZ_DIR)/fuzz_parser.c $(FUZZ_DIR)/fuzz_roundtrip.c \
-	$(FUZZ_DIR)/fuzz_writer.c
+	$(FUZZ_DIR)/fuzz_writer.c $(FUZZ_DIR)/fuzz_number_text.c
 OBJECTS := $(SOURCES:src/%.c=$(BUILD)/obj/%.o)
 LIBRARY := $(BUILD)/lib/libmaelys-json.a
 TEST := $(BUILD)/bin/test-json
@@ -180,10 +180,13 @@ fuzz:
 		$(FUZZ_DIR)/fuzz_roundtrip.c $(SOURCES) -o $(BUILD)/bin/fuzz-roundtrip
 	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
 		$(FUZZ_DIR)/fuzz_writer.c $(SOURCES) -o $(BUILD)/bin/fuzz-writer
+	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
+		$(FUZZ_DIR)/fuzz_number_text.c $(SOURCES) -o $(BUILD)/bin/fuzz-number-text
 
 FUZZ_TIME ?= 15
 fuzz-smoke: fuzz
-	@mkdir -p $(BUILD)/corpus-parser $(BUILD)/corpus-roundtrip $(BUILD)/corpus-writer
+	@mkdir -p $(BUILD)/corpus-parser $(BUILD)/corpus-roundtrip $(BUILD)/corpus-writer \
+		$(BUILD)/corpus-number-text
 	$(BUILD)/bin/fuzz-parser -max_total_time=$(FUZZ_TIME) -timeout=2 \
 		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ -dict=$(FUZZ_DIR)/json.dict \
 		$(BUILD)/corpus-parser $(FUZZ_DIR)/corpus
@@ -192,6 +195,9 @@ fuzz-smoke: fuzz
 		$(BUILD)/corpus-roundtrip $(FUZZ_DIR)/corpus
 	$(BUILD)/bin/fuzz-writer -max_total_time=$(FUZZ_TIME) -timeout=2 \
 		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ $(BUILD)/corpus-writer
+	$(BUILD)/bin/fuzz-number-text -max_total_time=$(FUZZ_TIME) -timeout=2 \
+		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ $(BUILD)/corpus-number-text \
+		$(FUZZ_DIR)/corpus-number-text
 
 install: all
 	install -d $(DESTDIR)$(PREFIX)/include/maelys $(DESTDIR)$(PREFIX)/lib/pkgconfig

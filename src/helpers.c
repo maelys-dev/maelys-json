@@ -44,12 +44,36 @@ maelys_json_result_t maelys_json_object_get_boolean(
         maelys_json_value_boolean(document, value, out_enabled) : result;
 }
 
+/* The canonical numeric domain is integral, while the writer can copy any
+ * number by its lexeme: a document carrying a fraction or an exponent would
+ * round-trip byte for byte without being canonical, so it is ruled out here
+ * rather than by the comparison below. */
+static int holds_non_integral_number(const maelys_json_document_t *document) {
+    for (size_t i = 0u; i < document->token_count; ++i) {
+        const maelys_json_token_t *token = &document->tokens[i];
+        if (token->type != MAELYS_JSON_TYPE_NUMBER) {
+            continue;
+        }
+        for (size_t j = 0u; j < token->text_size; ++j) {
+            char byte = token->text[j];
+            if (byte == '.' || byte == 'e' || byte == 'E') {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 maelys_json_result_t maelys_json_document_is_canonical(
     const maelys_json_document_t *document, unsigned int flags,
     int *out_canonical) {
     if (!document || !out_canonical ||
         (flags & ~MAELYS_JSON_WRITER_FINAL_NEWLINE)) {
         return MAELYS_JSON_ERR_ARGUMENT;
+    }
+    if (holds_non_integral_number(document)) {
+        *out_canonical = 0;
+        return MAELYS_JSON_OK;
     }
     /* The canonical form is never longer than the input, and never has more
      * nodes than the parse had tokens, so these limits only cut off output
@@ -81,7 +105,9 @@ maelys_json_result_t maelys_json_document_is_canonical(
         case MAELYS_JSON_ERR_NOT_INTEGER:
         case MAELYS_JSON_ERR_RANGE:
         case MAELYS_JSON_ERR_LIMIT:
-            /* Not representable canonically, or longer than the input. */
+            /* Not representable canonically, or longer than the input. The
+             * writer no longer answers NOT_INTEGER; the enumerator stays so
+             * this switch covers the result type. */
             *out_canonical = 0;
             return MAELYS_JSON_OK;
         case MAELYS_JSON_ERR_MEMORY:

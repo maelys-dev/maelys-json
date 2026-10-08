@@ -40,7 +40,7 @@ extern "C" {
 
 /* Incremented whenever a public type, enumerator value or symbol changes
  * incompatibly. Consumers may static_assert on it. */
-#define MAELYS_JSON_ABI_VERSION 2u
+#define MAELYS_JSON_ABI_VERSION 3u
 
 /* Values used when a maelys_json_limits_t field is zero or the pointer is
  * NULL. */
@@ -50,6 +50,9 @@ extern "C" {
 
 /* Absolute ceiling for maximum_depth, for both the parser and the writer. */
 #define MAELYS_JSON_MAXIMUM_DEPTH 256u
+
+/* Longest number lexeme maelys_json_writer_number_text accepts. */
+#define MAELYS_JSON_MAXIMUM_NUMBER_TEXT 64u
 
 /* Returned by functions that yield a maelys_json_value_t when there is none. */
 #define MAELYS_JSON_VALUE_NONE SIZE_MAX
@@ -342,17 +345,39 @@ maelys_json_result_t maelys_json_writer_u64(
     maelys_json_writer_t *writer, uint64_t value);
 maelys_json_result_t maelys_json_writer_i64(
     maelys_json_writer_t *writer, int64_t value);
+
+/*
+ * Writes a number from its lexeme, byte for byte, after validating it against
+ * the `number` grammar of RFC 8259 section 6: an optional minus, an integer
+ * part without a leading zero, an optional fraction, an optional exponent.
+ * No NaN, no Infinity, no hexadecimal, no sign other than a leading minus, no
+ * surrounding space. At most MAELYS_JSON_MAXIMUM_NUMBER_TEXT bytes.
+ *
+ * This writes a number the library does not produce itself: it presents one
+ * that was read. A lexeme with a fraction or an exponent is valid JSON and is
+ * not Maelys Canonical JSON v1, whose numeric domain is integers; the output
+ * is then not canonical, and maelys_json_document_is_canonical says so. The
+ * library never converts a lexeme to a floating-point value, so no digit is
+ * lost and none is invented.
+ *
+ * Errors: ARGUMENT (NULL, a lexeme the grammar refuses, or one longer than
+ * the maximum), LIMIT (longer than maximum_bytes), STATE, MEMORY.
+ */
+maelys_json_result_t maelys_json_writer_number_text(
+    maelys_json_writer_t *writer, const char *lexeme, size_t length);
 maelys_json_result_t maelys_json_writer_boolean(
     maelys_json_writer_t *writer, int enabled);
 maelys_json_result_t maelys_json_writer_null(maelys_json_writer_t *writer);
 
 /*
  * Copies a value (and its subtree) from a parsed document into the writer,
- * as if the matching writer calls had been made. Numbers must be integers in
- * [-2^63, 2^64 - 1].
+ * as if the matching writer calls had been made. An integer in
+ * [-2^63, 2^64 - 1] is written as an integer; any other number is copied by
+ * its lexeme, as maelys_json_writer_number_text would, so what was read can
+ * always be written again. An integer beyond that interval is a RANGE error:
+ * such a lexeme is outside the domain the writer carries.
  * Errors: ARGUMENT (bad handle, or text the writer profile cannot carry),
- * NOT_INTEGER, RANGE, LIMIT, STATE, MEMORY. Any failure marks the writer
- * failed.
+ * RANGE, LIMIT, STATE, MEMORY. Any failure marks the writer failed.
  */
 maelys_json_result_t maelys_json_writer_value(
     maelys_json_writer_t *writer, const maelys_json_document_t *document,
@@ -367,8 +392,7 @@ maelys_json_result_t maelys_json_writer_value(
  * rewrite" primitive: parse, copy everything but the keys to change, write
  * the new values, end.
  * Errors: ARGUMENT (bad handle, NULL key, or text the writer profile cannot
- * carry), NOT_INTEGER, RANGE, LIMIT, STATE, MEMORY. Any failure marks the
- * writer failed.
+ * carry), RANGE, LIMIT, STATE, MEMORY. Any failure marks the writer failed.
  */
 maelys_json_result_t maelys_json_writer_object_begin_except(
     maelys_json_writer_t *writer, const maelys_json_document_t *document,

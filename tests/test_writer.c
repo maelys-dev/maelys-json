@@ -412,12 +412,24 @@ static int bridge(void) {
     maelys_json_writer_release(writer);
     maelys_json_document_release(document);
 
+    /* A number the canonical domain does not hold is copied by its lexeme,
+     * and an integer too wide for the writer is still a RANGE error. */
     CHECK_RESULT(parse_text("[1.5]", MAELYS_JSON_PROFILE_RFC8259, NULL,
         &document, NULL), MAELYS_JSON_OK);
     CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL, 0u,
         &writer), MAELYS_JSON_OK);
-    CHECK_RESULT(maelys_json_writer_value(writer, document, 0u), MAELYS_JSON_ERR_NOT_INTEGER);
-    CHECK(maelys_json_writer_status(writer) == MAELYS_JSON_ERR_NOT_INTEGER);
+    CHECK_RESULT(maelys_json_writer_value(writer, document, 0u), MAELYS_JSON_OK);
+    CHECK(maelys_json_writer_status(writer) == MAELYS_JSON_OK);
+    CHECK(finish_equals(writer, "[1.5]") == 0);
+    maelys_json_writer_release(writer);
+    maelys_json_document_release(document);
+
+    CHECK_RESULT(parse_text("[18446744073709551616]", MAELYS_JSON_PROFILE_RFC8259,
+        NULL, &document, NULL), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL, 0u,
+        &writer), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_value(writer, document, 0u), MAELYS_JSON_ERR_RANGE);
+    CHECK(maelys_json_writer_status(writer) == MAELYS_JSON_ERR_RANGE);
     maelys_json_writer_release(writer);
     maelys_json_document_release(document);
 
@@ -630,6 +642,145 @@ static int many_keys(void) {
     return 0;
 }
 
+/* Lexemes RFC 8259 section 6 accepts, written exactly as given. */
+static int number_text_accepted(void) {
+    static const char *const lexemes[] = {
+        "0", "-0", "1.5e3", "1E-7", "-12.0", "1e400",
+        "123", "-1", "0.0", "1e+2", "-0.25E+2",
+    };
+    for (size_t i = 0u; i < sizeof(lexemes) / sizeof(lexemes[0]); ++i) {
+        maelys_json_writer_t *writer = NULL;
+        CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL,
+            0u, &writer), MAELYS_JSON_OK);
+        CHECK_RESULT(maelys_json_writer_number_text(writer, lexemes[i],
+            strlen(lexemes[i])), MAELYS_JSON_OK);
+        CHECK(maelys_json_writer_status(writer) == MAELYS_JSON_OK);
+        if (finish_equals(writer, lexemes[i]) != 0) {
+            fprintf(stderr, "    lexeme: %s\n", lexemes[i]);
+            maelys_json_writer_release(writer);
+            return 1;
+        }
+        maelys_json_writer_release(writer);
+    }
+    /* The ASCII profile carries a lexeme: it is printable ASCII. */
+    maelys_json_writer_t *writer = NULL;
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_CONTRACT_ASCII,
+        NULL, 0u, &writer), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_number_text(writer, "1.5e3", 5u), MAELYS_JSON_OK);
+    CHECK(finish_equals(writer, "1.5e3") == 0);
+    maelys_json_writer_release(writer);
+    return 0;
+}
+
+/* Everything the grammar refuses, plus the length bound and the sequencing. */
+static int number_text_refused(void) {
+    static const char *const lexemes[] = {
+        "01", "1.", ".5", "+1", "1e", "NaN", "Infinity", "0x1", "1 ", " 1",
+        "", "-", "1.2.3", "1e2e3", "--1", "1,5", "0b1", "1e+", "e3", "\t1",
+    };
+    maelys_json_writer_t *writer = NULL;
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL, 0u,
+        &writer), MAELYS_JSON_OK);
+    for (size_t i = 0u; i < sizeof(lexemes) / sizeof(lexemes[0]); ++i) {
+        maelys_json_result_t result = maelys_json_writer_number_text(writer,
+            lexemes[i], strlen(lexemes[i]));
+        if (result != MAELYS_JSON_ERR_ARGUMENT) {
+            fprintf(stderr, "    lexeme %s: %s\n", lexemes[i],
+                maelys_json_result_string(result));
+            maelys_json_writer_release(writer);
+            return 1;
+        }
+    }
+    /* A lexeme the grammar accepts but one byte too long, and the longest
+     * one accepted. An ARGUMENT error leaves the writer usable. */
+    char digits[MAELYS_JSON_MAXIMUM_NUMBER_TEXT + 2u];
+    memset(digits, '1', sizeof(digits));
+    CHECK_RESULT(maelys_json_writer_number_text(writer, digits,
+        MAELYS_JSON_MAXIMUM_NUMBER_TEXT + 1u), MAELYS_JSON_ERR_ARGUMENT);
+    CHECK_RESULT(maelys_json_writer_number_text(writer, NULL, 1u), MAELYS_JSON_ERR_ARGUMENT);
+    CHECK_RESULT(maelys_json_writer_number_text(NULL, "1", 1u), MAELYS_JSON_ERR_ARGUMENT);
+    CHECK(maelys_json_writer_status(writer) == MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_number_text(writer, digits,
+        MAELYS_JSON_MAXIMUM_NUMBER_TEXT), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_number_text(writer, "1", 1u), MAELYS_JSON_ERR_STATE);
+    maelys_json_writer_release(writer);
+
+    /* Longer than maximum_bytes is a LIMIT error, and it is sticky. */
+    maelys_json_limits_t limits = {.maximum_bytes = 3u};
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, &limits,
+        0u, &writer), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_number_text(writer, "1.5e3", 5u), MAELYS_JSON_ERR_LIMIT);
+    CHECK(maelys_json_writer_status(writer) == MAELYS_JSON_ERR_LIMIT);
+    maelys_json_writer_release(writer);
+    return 0;
+}
+
+/* A document holding non-integral numbers is copied whole, and says it is
+ * not canonical. Keys come back in canonical order. */
+static int number_text_round_trip(void) {
+    maelys_json_document_t *document = NULL;
+    CHECK_RESULT(parse_text("{\"a\":1.5e3,\"b\":[2,-0.25E+2]}",
+        MAELYS_JSON_PROFILE_RFC8259, NULL, &document, NULL), MAELYS_JSON_OK);
+    int canonical = -1;
+    CHECK_RESULT(maelys_json_document_is_canonical(document, 0u, &canonical),
+        MAELYS_JSON_OK);
+    CHECK(canonical == 0);
+    maelys_json_writer_t *writer = NULL;
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL, 0u,
+        &writer), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_value(writer, document,
+        maelys_json_document_root(document)), MAELYS_JSON_OK);
+    CHECK(finish_equals(writer, "{\"a\":1.5e3,\"b\":[2,-0.25E+2]}") == 0);
+    maelys_json_writer_release(writer);
+
+    /* The same copy, with one member left out. */
+    static const char *const excluded[] = {"b"};
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL, 0u,
+        &writer), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_object_begin_except(writer, document,
+        maelys_json_document_root(document), excluded, 1u), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_object_end(writer), MAELYS_JSON_OK);
+    CHECK(finish_equals(writer, "{\"a\":1.5e3}") == 0);
+    maelys_json_writer_release(writer);
+    maelys_json_document_release(document);
+
+    /* A lexeme longer than the public bound still copies: what a document
+     * carries can always be written back, bounded by maximum_bytes. */
+    char text[MAELYS_JSON_MAXIMUM_NUMBER_TEXT + 12u];
+    size_t length = 0u;
+    text[length++] = '0';
+    text[length++] = '.';
+    while (length < MAELYS_JSON_MAXIMUM_NUMBER_TEXT + 10u) {
+        text[length++] = '1';
+    }
+    text[length] = '\0';
+    CHECK_RESULT(parse_text(text, MAELYS_JSON_PROFILE_RFC8259, NULL, &document,
+        NULL), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL, 0u,
+        &writer), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_value(writer, document, 0u), MAELYS_JSON_OK);
+    CHECK(finish_equals(writer, text) == 0);
+    maelys_json_writer_release(writer);
+    maelys_json_document_release(document);
+    return 0;
+}
+
+/* Indentation and the ASCII flag are presentation, and so is a lexeme: the
+ * three compose. */
+static int number_text_presentation(void) {
+    maelys_json_document_t *document = NULL;
+    CHECK_RESULT(parse_text("{\"a\":[1.5e3]}", MAELYS_JSON_PROFILE_RFC8259, NULL,
+        &document, NULL), MAELYS_JSON_OK);
+    maelys_json_writer_t *writer = NULL;
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL,
+        MAELYS_JSON_WRITER_INDENT, &writer), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_value(writer, document, 0u), MAELYS_JSON_OK);
+    CHECK(finish_equals(writer, "{\n  \"a\": [\n    1.5e3\n  ]\n}") == 0);
+    maelys_json_writer_release(writer);
+    maelys_json_document_release(document);
+    return 0;
+}
+
 static const test_case_t cases[] = {
     {"many_keys", many_keys},
     {"canonical_output", canonical_output},
@@ -646,6 +797,10 @@ static const test_case_t cases[] = {
     {"object_begin_except", object_begin_except},
     {"finish_file", finish_file},
     {"growth", growth},
+    {"number_text_accepted", number_text_accepted},
+    {"number_text_refused", number_text_refused},
+    {"number_text_round_trip", number_text_round_trip},
+    {"number_text_presentation", number_text_presentation},
 };
 
 TEST_SUITE(test_writer_suite, cases)

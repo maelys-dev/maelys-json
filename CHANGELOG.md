@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.3.0 — 2026-10-08
+
+- **Added** `maelys_json_writer_number_text`, which writes a number from its
+  lexeme after validating it against the `number` grammar of RFC 8259
+  section 6, at most `MAELYS_JSON_MAXIMUM_NUMBER_TEXT` (64) bytes. The bytes
+  are written as given and never converted to a floating-point value, so no
+  digit is lost and none is invented.
+- **Changed** `maelys_json_writer_value` and
+  `maelys_json_writer_object_begin_except`: a number that is not an integer
+  in [-2^63, 2^64 - 1] is now copied by its lexeme instead of answering
+  `MAELYS_JSON_ERR_NOT_INTEGER`. Copying a parsed document is total: what the
+  reader accepted can always be written back, bounded by `maximum_bytes`
+  rather than by the 64-byte bound of the public call. An integer beyond that
+  interval is still a `RANGE` error, and `NOT_INTEGER` remains the answer of
+  the reader's integer accessors, which do not change. No caller that
+  succeeded before changes result.
+- `maelys_json_document_is_canonical` keeps its meaning and no longer rests on
+  a byte comparison alone: a document holding a fraction or an exponent is
+  not canonical even though the writer now reproduces it exactly.
+- `MAELYS_JSON_ABI_VERSION` is 3: the symbol set grew. A consumer that needs
+  the lexeme path can assert on it.
+- The serializer returns early on an empty append instead of calling `memcpy`
+  with a buffer it has not allocated yet. The new call site made the path
+  reachable for the static analyser, which named it.
+- New fuzz target `tests/fuzz/fuzz_number_text.c`, with its seed corpus: it
+  holds the writer's reading of the number grammar and the parser's against
+  each other, in both directions.
+
+### Decisions
+
+- **The canonical numeric domain stays integral.** Copying a lexeme is
+  presentation, as `INDENT` and `ASCII` are, not a promotion of the domain:
+  Maelys Canonical JSON v1 is unchanged, and the vectors of `tests/vectors/`
+  are untouched.
+- **A number is copied, never rebuilt.** No `double` enters the API, in
+  either direction. Converting is the consumer's business, and its rounding
+  is its own.
+- **`writer_value` changed rather than gaining a sibling.** A partial copy is
+  a trap, not an option: a function that copies everything except some
+  numbers would be discovered by its callers at the worst moment.
+- Requested by maelys-jsonrpc, which relays a received `result` and cannot
+  drop a number it did not produce; maelys-mcp is named as the second
+  consumer, since tool results are free-form JSON.
+
 ## Unreleased
 
 - Release socle re-adopted at maelys-release v0.57.1 (from v0.57.0): the three
