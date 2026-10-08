@@ -32,9 +32,9 @@ private documentation repository, and
 
 ## Documentation
 
-The prose of this repository moved to `maelys-dev/maelys-docs`, directory
-`maelys-json/`, with its history. What `docs/` keeps is what this file
-engages, as the conventions of maelys-release require.
+The prose of this repository lives outside it, with its history. What
+`docs/` keeps is what this file engages, as the conventions of
+maelys-release require.
 
 ## Installed agent texts: CC-BY-4.0
 
