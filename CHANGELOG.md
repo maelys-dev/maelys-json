@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- The nightly fuzzing run had failed every night but one since 27 September,
+  and not on a finding: `libFuzzer: out-of-memory (used: 1026Mb; limit:
+  1024Mb)`. The corpus carried over between nights had grown past five
+  thousand inputs per target, which libFuzzer holds resident while the
+  sanitizers add their own bookkeeping, so the ceiling was crossed before the
+  run began. The short runs of a pull request, on a fresh corpus, could not
+  see it.
+- `FUZZ_RSS` makes that ceiling a variable, 1024 by default and 2560 for the
+  night, and the new `make fuzz-minimize` rewrites each corpus with the
+  smallest set of inputs that keeps its coverage. The nightly workflow
+  minimizes before it fuzzes, caches the corpus of the `number_text` target
+  too, and takes 120 minutes rather than 90, four targets of twenty minutes
+  no longer fitting in ninety.
+
 ## 0.3.0 — 2026-10-08
 
 - **Added** `maelys_json_writer_number_text`, which writes a number from its
