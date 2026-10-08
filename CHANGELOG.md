@@ -44,40 +44,26 @@
   drop a number it did not produce; maelys-mcp is named as the second
   consumer, since tool results are free-form JSON.
 
-## Unreleased
+### Release mechanism and CI
 
-- Release socle re-adopted at maelys-release v0.63.1 (from v0.57.1): the three
-  workflow pins move, and the managed blocks of `AGENTS.md` and `CLAUDE.md`
-  stop naming the private documentation repository, as socle 0.58.0 asks of
-  public repositories and 0.61.0 refuses outright. `LICENSING.md` stops
-  naming it too. The socle CI drops its three leg aliases (0.60.0), which
-  `main` never required.
-- Release socle re-adopted at maelys-release v0.57.1 (from v0.57.0): the three
-  workflow pins move, nothing else; `protect` has nothing to write on `main`.
-- Release socle re-adopted at maelys-release v0.57.0 (from v0.56.0): the three
-  workflow pins move and the managed agent blocks change prose only. The
-  socle's CI reports its pre-0.54.0 leg names again as short alias jobs;
-  `main` already requires the new names, so its protection is unchanged.
-- Release socle re-adopted at maelys-release v0.56.0 (from v0.50.1): the three
-  workflow pins move and the managed agent blocks change prose only. The
-  socle renamed its CI legs (`check / check (linux)`, `(linux-arm64)`,
-  `(macos)` instead of the runner labels), so the branch protection of
-  `main` was narrowed with `protect --without-legs`, then re-derived with
-  `protect --apply` after the adoption, as the socle asks.
-- Release socle re-adopted at maelys-release v0.50.1 (from v0.44.0): the three
-  workflow pins move and the managed agent blocks name the second managed
-  dependency script; nothing here declares dependencies, channels or a
-  `[commit]` rule, so no declaration changes.
-- CI: the compiler matrix no longer builds its own ASan and UBSan trees; the
-  socle's `sanitizers` job (`make asan-ubsan`, Linux x86_64, clang) is the
-  one instrumented build per pull request, six fewer builds per run. The
-  matrix keeps `make check` on gcc, clang and Apple clang. Reported by the
-  fleet observer.
-- Release socle re-adopted at maelys-release v0.44.0 (from v0.35.0): the three
-  workflow pins move, the managed agent blocks take the corrected replay rule
-  (`--ref vX.Y.Z`; a socle at fault calls for a patch release, not a replay),
-  and the `[cut]` declaration moves from `packaging/release` to
-  `maelys-release.conf` at the root, where socle 0.37.0 reads it.
+- The release socle moves from maelys-release v0.35.0 to **v0.63.1**, in
+  seven adoptions this version carries. What it changed here: the `[cut]`
+  declaration lives in `maelys-release.conf` at the root (socle 0.37.0); the
+  managed blocks of `AGENTS.md` and `CLAUDE.md` carry the corrected replay
+  rule, `--ref vX.Y.Z`, and a socle at fault calls for a patch release rather
+  than a replay (0.36.0); the shared CI renamed its legs and then dropped the
+  aliases that carried the fleet through the rename, so `main` requires
+  `check / check (linux)`, `(linux-arm64)` and `(macos)` (0.54.0 to 0.60.0);
+  the branch protection of `main` is derived by `maelys-release protect` and
+  no longer typed.
+- Neither the managed blocks nor `LICENSING.md` name the private
+  documentation repository any more: socle 0.58.0 asks that of a public
+  repository and 0.61.0 refuses the text outright.
+- CI: the compiler matrix no longer builds its own ASan and UBSan trees. The
+  socle's `sanitizers` job builds the one instrumented tree per pull request,
+  on Linux x86_64 with clang, and the matrix keeps `make check` on gcc, clang
+  and Apple clang. Six builds fewer per run. The socle also runs the fuzz
+  smoke through `fuzz_command`.
 
 ## 0.2.0 — 2026-09-11
 
