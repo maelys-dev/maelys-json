@@ -10,6 +10,8 @@ typedef struct maelys_json_node {
     maelys_json_type_t type;
     char *key;
     size_t key_size;
+    /* String value, or the number lexeme when `type` is NUMBER and the
+     * number came from maelys_json_writer_number_text. */
     char *string;
     size_t string_size;
     uint64_t unsigned_value;

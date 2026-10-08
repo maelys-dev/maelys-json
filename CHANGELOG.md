@@ -1,39 +1,69 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-10-08
 
-- Release socle re-adopted at maelys-release v0.63.1 (from v0.57.1): the three
-  workflow pins move, and the managed blocks of `AGENTS.md` and `CLAUDE.md`
-  stop naming the private documentation repository, as socle 0.58.0 asks of
-  public repositories and 0.61.0 refuses outright. `LICENSING.md` stops
-  naming it too. The socle CI drops its three leg aliases (0.60.0), which
-  `main` never required.
-- Release socle re-adopted at maelys-release v0.57.1 (from v0.57.0): the three
-  workflow pins move, nothing else; `protect` has nothing to write on `main`.
-- Release socle re-adopted at maelys-release v0.57.0 (from v0.56.0): the three
-  workflow pins move and the managed agent blocks change prose only. The
-  socle's CI reports its pre-0.54.0 leg names again as short alias jobs;
-  `main` already requires the new names, so its protection is unchanged.
-- Release socle re-adopted at maelys-release v0.56.0 (from v0.50.1): the three
-  workflow pins move and the managed agent blocks change prose only. The
-  socle renamed its CI legs (`check / check (linux)`, `(linux-arm64)`,
-  `(macos)` instead of the runner labels), so the branch protection of
-  `main` was narrowed with `protect --without-legs`, then re-derived with
-  `protect --apply` after the adoption, as the socle asks.
-- Release socle re-adopted at maelys-release v0.50.1 (from v0.44.0): the three
-  workflow pins move and the managed agent blocks name the second managed
-  dependency script; nothing here declares dependencies, channels or a
-  `[commit]` rule, so no declaration changes.
-- CI: the compiler matrix no longer builds its own ASan and UBSan trees; the
-  socle's `sanitizers` job (`make asan-ubsan`, Linux x86_64, clang) is the
-  one instrumented build per pull request, six fewer builds per run. The
-  matrix keeps `make check` on gcc, clang and Apple clang. Reported by the
-  fleet observer.
-- Release socle re-adopted at maelys-release v0.44.0 (from v0.35.0): the three
-  workflow pins move, the managed agent blocks take the corrected replay rule
-  (`--ref vX.Y.Z`; a socle at fault calls for a patch release, not a replay),
-  and the `[cut]` declaration moves from `packaging/release` to
-  `maelys-release.conf` at the root, where socle 0.37.0 reads it.
+- **Added** `maelys_json_writer_number_text`, which writes a number from its
+  lexeme after validating it against the `number` grammar of RFC 8259
+  section 6, at most `MAELYS_JSON_MAXIMUM_NUMBER_TEXT` (64) bytes. The bytes
+  are written as given and never converted to a floating-point value, so no
+  digit is lost and none is invented.
+- **Changed** `maelys_json_writer_value` and
+  `maelys_json_writer_object_begin_except`: a number that is not an integer
+  in [-2^63, 2^64 - 1] is now copied by its lexeme instead of answering
+  `MAELYS_JSON_ERR_NOT_INTEGER`. Copying a parsed document is total: what the
+  reader accepted can always be written back, bounded by `maximum_bytes`
+  rather than by the 64-byte bound of the public call. An integer beyond that
+  interval is still a `RANGE` error, and `NOT_INTEGER` remains the answer of
+  the reader's integer accessors, which do not change. No caller that
+  succeeded before changes result.
+- `maelys_json_document_is_canonical` keeps its meaning and no longer rests on
+  a byte comparison alone: a document holding a fraction or an exponent is
+  not canonical even though the writer now reproduces it exactly.
+- `MAELYS_JSON_ABI_VERSION` is 3: the symbol set grew. A consumer that needs
+  the lexeme path can assert on it.
+- The serializer returns early on an empty append instead of calling `memcpy`
+  with a buffer it has not allocated yet. The new call site made the path
+  reachable for the static analyser, which named it.
+- New fuzz target `tests/fuzz/fuzz_number_text.c`, with its seed corpus: it
+  holds the writer's reading of the number grammar and the parser's against
+  each other, in both directions.
+
+### Decisions
+
+- **The canonical numeric domain stays integral.** Copying a lexeme is
+  presentation, as `INDENT` and `ASCII` are, not a promotion of the domain:
+  Maelys Canonical JSON v1 is unchanged, and the vectors of `tests/vectors/`
+  are untouched.
+- **A number is copied, never rebuilt.** No `double` enters the API, in
+  either direction. Converting is the consumer's business, and its rounding
+  is its own.
+- **`writer_value` changed rather than gaining a sibling.** A partial copy is
+  a trap, not an option: a function that copies everything except some
+  numbers would be discovered by its callers at the worst moment.
+- Requested by maelys-jsonrpc, which relays a received `result` and cannot
+  drop a number it did not produce; maelys-mcp is named as the second
+  consumer, since tool results are free-form JSON.
+
+### Release mechanism and CI
+
+- The release socle moves from maelys-release v0.35.0 to **v0.63.1**, in
+  seven adoptions this version carries. What it changed here: the `[cut]`
+  declaration lives in `maelys-release.conf` at the root (socle 0.37.0); the
+  managed blocks of `AGENTS.md` and `CLAUDE.md` carry the corrected replay
+  rule, `--ref vX.Y.Z`, and a socle at fault calls for a patch release rather
+  than a replay (0.36.0); the shared CI renamed its legs and then dropped the
+  aliases that carried the fleet through the rename, so `main` requires
+  `check / check (linux)`, `(linux-arm64)` and `(macos)` (0.54.0 to 0.60.0);
+  the branch protection of `main` is derived by `maelys-release protect` and
+  no longer typed.
+- Neither the managed blocks nor `LICENSING.md` name the private
+  documentation repository any more: socle 0.58.0 asks that of a public
+  repository and 0.61.0 refuses the text outright.
+- CI: the compiler matrix no longer builds its own ASan and UBSan trees. The
+  socle's `sanitizers` job builds the one instrumented tree per pull request,
+  on Linux x86_64 with clang, and the matrix keeps `make check` on gcc, clang
+  and Apple clang. Six builds fewer per run. The socle also runs the fuzz
+  smoke through `fuzz_command`.
 
 ## 0.2.0 — 2026-09-11
 

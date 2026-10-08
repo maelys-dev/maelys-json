@@ -354,6 +354,45 @@ maelys_json_result_t maelys_json_writer_i64(
     return result;
 }
 
+/* Attaches a number written as its own lexeme. `maximum` is the longest
+ * lexeme accepted: the public call bounds it to MAELYS_JSON_MAXIMUM_NUMBER_TEXT,
+ * while copying a parsed document bounds it to maximum_bytes alone, so that a
+ * number a document carries can always be written back. */
+static maelys_json_result_t write_number_lexeme(
+    maelys_json_writer_t *writer, const char *lexeme, size_t length,
+    size_t maximum) {
+    if (!writer || !lexeme || length > maximum ||
+            !maelys_json_number_syntax(lexeme, length)) {
+        return MAELYS_JSON_ERR_ARGUMENT;
+    }
+    maelys_json_result_t result = writer_ready(writer);
+    if (result != MAELYS_JSON_OK) {
+        return result;
+    }
+    if (length > writer->limits.maximum_bytes) {
+        return writer_fail(writer, MAELYS_JSON_ERR_LIMIT);
+    }
+    char *copy = copy_bytes(lexeme, length);
+    if (!copy) {
+        return writer_fail(writer, MAELYS_JSON_ERR_MEMORY);
+    }
+    size_t index = MAELYS_JSON_VALUE_NONE;
+    result = attach_node(writer, MAELYS_JSON_TYPE_NUMBER, &index);
+    if (result != MAELYS_JSON_OK) {
+        free(copy);
+        return result;
+    }
+    writer->nodes[index].string = copy;
+    writer->nodes[index].string_size = length;
+    return MAELYS_JSON_OK;
+}
+
+maelys_json_result_t maelys_json_writer_number_text(
+    maelys_json_writer_t *writer, const char *lexeme, size_t length) {
+    return write_number_lexeme(writer, lexeme, length,
+        MAELYS_JSON_MAXIMUM_NUMBER_TEXT);
+}
+
 maelys_json_result_t maelys_json_writer_boolean(
     maelys_json_writer_t *writer, int enabled) {
     maelys_json_node_t *node;
@@ -382,13 +421,22 @@ static maelys_json_result_t copy_number(
     if (text.size && text.data[0] == '-') {
         int64_t number;
         result = maelys_json_value_i64(document, value, &number);
-        return result == MAELYS_JSON_OK ?
-            maelys_json_writer_i64(writer, number) : result;
+        if (result != MAELYS_JSON_ERR_NOT_INTEGER) {
+            return result == MAELYS_JSON_OK ?
+                maelys_json_writer_i64(writer, number) : result;
+        }
+    } else {
+        uint64_t number;
+        result = maelys_json_value_u64(document, value, &number);
+        if (result != MAELYS_JSON_ERR_NOT_INTEGER) {
+            return result == MAELYS_JSON_OK ?
+                maelys_json_writer_u64(writer, number) : result;
+        }
     }
-    uint64_t number;
-    result = maelys_json_value_u64(document, value, &number);
-    return result == MAELYS_JSON_OK ?
-        maelys_json_writer_u64(writer, number) : result;
+    /* A fraction or an exponent: present the lexeme the parser kept. The
+     * output is then not canonical, which is the caller's to know. */
+    return write_number_lexeme(writer, text.data, text.size,
+        writer->limits.maximum_bytes);
 }
 
 static maelys_json_result_t copy_value(

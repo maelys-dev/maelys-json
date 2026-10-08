@@ -46,7 +46,16 @@ check a whole document.
 Numbers are integers in [-2^63, 2^64 - 1], written in shortest base 10 with no
 leading zero, no sign for zero and no exponent. The reader accepts `-0` and
 reads it as 0, so `-0` canonicalizes to `0`. A document containing a fraction
-or an exponent cannot be canonicalized (`MAELYS_JSON_ERR_NOT_INTEGER`).
+or an exponent is not canonical.
+
+Since 0.3.0 the writer can nevertheless emit such a number, on explicit
+request with `maelys_json_writer_number_text` or by copying a parsed document
+with `maelys_json_writer_value`: the lexeme is written byte for byte, never
+converted to a floating-point value. This is presentation, like indentation
+and the ASCII flag, and not an extension of the canonical domain, which stays
+integral. The output is then not canonical, and
+`maelys_json_document_is_canonical` is the authority on that: it answers no
+for any document holding a fraction or an exponent, whatever the bytes.
 
 ## Literals and trailer
 
@@ -76,7 +85,7 @@ called JCS because the two differ outside that domain:
 | Whitespace, literals, arrays | none, lowercase, insertion order | identical |
 | Duplicate keys, lone surrogates | rejected | rejected |
 | Numbers | IEEE 754 doubles, ES6 formatting, exact only to 2^53 | integers only, exact over [-2^63, 2^64) |
-| Fractions and exponents | serialized | rejected (`MAELYS_JSON_ERR_NOT_INTEGER`) |
+| Fractions and exponents | serialized | outside the canonical domain; copied by their lexeme when asked |
 | U+0000 | allowed | rejected |
 | Final LF | none | optional flag |
 

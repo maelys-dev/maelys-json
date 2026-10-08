@@ -41,6 +41,11 @@ static maelys_json_result_t reserve(serializer_t *s, size_t extra) {
 
 static maelys_json_result_t append(
     serializer_t *s, const char *bytes, size_t size) {
+    if (size == 0u) {
+        /* Nothing to copy, and the buffer may not be allocated yet: memcpy
+         * takes no NULL argument, however many bytes it is asked to move. */
+        return MAELYS_JSON_OK;
+    }
     maelys_json_result_t result = reserve(s, size);
     if (result != MAELYS_JSON_OK) {
         return result;
@@ -129,6 +134,10 @@ static maelys_json_result_t append_string(
 
 static maelys_json_result_t append_number(
     serializer_t *s, const maelys_json_node_t *node) {
+    if (node->string) {
+        /* Written from its lexeme: emit the bytes the caller validated. */
+        return append(s, node->string, node->string_size);
+    }
     char number[32];
     int length = node->number_signed ?
         snprintf(number, sizeof(number), "%" PRId64, node->signed_value) :
