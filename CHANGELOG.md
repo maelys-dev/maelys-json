@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 — 2026-10-20
 
 - **`maelys_json_document_is_canonical` answers without copying the
   document.** It built a whole writer copy of the tree and a whole output
@@ -27,6 +27,19 @@
   the final newline. 359 files, both profiles, both flag settings, no
   disagreement. The new fuzz target `fuzz_canonical` holds the same
   comparison on arbitrary input.
+- The nightly fuzzing run had failed every night but one since 27 September,
+  and not on a finding: `libFuzzer: out-of-memory (used: 1026Mb; limit:
+  1024Mb)`. The corpus carried over between nights had grown past five
+  thousand inputs per target, which libFuzzer holds resident while the
+  sanitizers add their own bookkeeping, so the ceiling was crossed before the
+  run began. The short runs of a pull request, on a fresh corpus, could not
+  see it.
+- `FUZZ_RSS` makes that ceiling a variable, 1024 by default and 2560 for the
+  night, and the new `make fuzz-minimize` rewrites each corpus with the
+  smallest set of inputs that keeps its coverage. The nightly workflow
+  minimizes before it fuzzes, caches the corpus of the `number_text` target
+  too, and takes 120 minutes rather than 90, four targets of twenty minutes
+  no longer fitting in ninety.
 
 ## 0.3.0 — 2026-10-08
 
