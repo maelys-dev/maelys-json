@@ -37,15 +37,18 @@ CLANG_FORMAT ?= $(shell command -v $(LLVM_PREFIX)clang-format 2>/dev/null || \
 	command -v clang-format 2>/dev/null)
 
 SOURCES := src/common.c src/utf8.c src/keyset.c src/parser.c src/document.c \
-	src/helpers.c src/writer.c src/serialize.c src/stdio.c src/pointer.c
+	src/helpers.c src/canonical.c src/writer.c src/serialize.c src/stdio.c \
+	src/pointer.c
 HEADERS := include/maelys/json.h src/internal.h src/keyset.h \
 	src/writer_internal.h
 TEST_SOURCES := tests/main.c tests/test_parser.c tests/test_reader.c \
-	tests/test_writer.c tests/test_vectors.c tests/test_conformance.c
+	tests/test_writer.c tests/test_vectors.c tests/test_conformance.c \
+	tests/test_canonical.c
 # Fuzz harnesses: libFuzzer entry points, never linked into the test binary.
 FUZZ_DIR := tests/fuzz
 FUZZ_SOURCES := $(FUZZ_DIR)/fuzz_parser.c $(FUZZ_DIR)/fuzz_roundtrip.c \
-	$(FUZZ_DIR)/fuzz_writer.c $(FUZZ_DIR)/fuzz_number_text.c
+	$(FUZZ_DIR)/fuzz_writer.c $(FUZZ_DIR)/fuzz_number_text.c \
+	$(FUZZ_DIR)/fuzz_canonical.c
 OBJECTS := $(SOURCES:src/%.c=$(BUILD)/obj/%.o)
 LIBRARY := $(BUILD)/lib/libmaelys-json.a
 TEST := $(BUILD)/bin/test-json
@@ -182,11 +185,13 @@ fuzz:
 		$(FUZZ_DIR)/fuzz_writer.c $(SOURCES) -o $(BUILD)/bin/fuzz-writer
 	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
 		$(FUZZ_DIR)/fuzz_number_text.c $(SOURCES) -o $(BUILD)/bin/fuzz-number-text
+	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
+		$(FUZZ_DIR)/fuzz_canonical.c $(SOURCES) -o $(BUILD)/bin/fuzz-canonical
 
 FUZZ_TIME ?= 15
 fuzz-smoke: fuzz
 	@mkdir -p $(BUILD)/corpus-parser $(BUILD)/corpus-roundtrip $(BUILD)/corpus-writer \
-		$(BUILD)/corpus-number-text
+		$(BUILD)/corpus-number-text $(BUILD)/corpus-canonical
 	$(BUILD)/bin/fuzz-parser -max_total_time=$(FUZZ_TIME) -timeout=2 \
 		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ -dict=$(FUZZ_DIR)/json.dict \
 		$(BUILD)/corpus-parser $(FUZZ_DIR)/corpus

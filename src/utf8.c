@@ -238,3 +238,51 @@ maelys_json_result_t maelys_json_decode_string(
     *out_size = output;
     return MAELYS_JSON_OK;
 }
+
+/* Streams the UTF-16 code units of a validated UTF-8 string. */
+typedef struct utf16_cursor {
+    const unsigned char *bytes;
+    size_t size;
+    size_t offset;
+    uint32_t pending_low_surrogate;
+} utf16_cursor_t;
+
+static int utf16_next(utf16_cursor_t *cursor, uint32_t *out_unit) {
+    if (cursor->pending_low_surrogate) {
+        *out_unit = cursor->pending_low_surrogate;
+        cursor->pending_low_surrogate = 0u;
+        return 1;
+    }
+    if (cursor->offset >= cursor->size) {
+        return 0;
+    }
+    uint32_t point;
+    cursor->offset += maelys_json_utf8_decode(cursor->bytes + cursor->offset,
+        cursor->size - cursor->offset, &point);
+    if (point >= 0x10000u) {
+        point -= 0x10000u;
+        *out_unit = 0xd800u + (point >> 10u);
+        cursor->pending_low_surrogate = 0xdc00u + (point & 0x3ffu);
+    } else {
+        *out_unit = point;
+    }
+    return 1;
+}
+
+int maelys_json_utf16_compare(
+    const char *left, size_t left_size, const char *right, size_t right_size) {
+    utf16_cursor_t a = {(const unsigned char *)left, left_size, 0u, 0u};
+    utf16_cursor_t b = {(const unsigned char *)right, right_size, 0u, 0u};
+    for (;;) {
+        uint32_t unit_a;
+        uint32_t unit_b;
+        int has_a = utf16_next(&a, &unit_a);
+        int has_b = utf16_next(&b, &unit_b);
+        if (!has_a || !has_b) {
+            return has_a - has_b;
+        }
+        if (unit_a != unit_b) {
+            return unit_a < unit_b ? -1 : 1;
+        }
+    }
+}

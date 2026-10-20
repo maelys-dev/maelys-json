@@ -22,6 +22,7 @@ jobs:
             build/corpus-parser
             build/corpus-roundtrip
             build/corpus-writer
+            build/corpus-canonical
           key: fuzz-corpus-${{ github.run_id }}
           restore-keys: fuzz-corpus-
       - run: make fuzz-smoke FUZZ_CC=clang FUZZ_TIME=1200

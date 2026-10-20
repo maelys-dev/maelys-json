@@ -36,6 +36,7 @@ set(MAELYS_JSON_SOURCES
     src/parser.c
     src/document.c
     src/helpers.c
+    src/canonical.c
     src/writer.c
     src/serialize.c
     src/stdio.c
@@ -60,7 +61,8 @@ if(MAELYS_JSON_BUILD_TESTS)
     enable_testing()
     add_executable(maelys_json_tests
         tests/main.c tests/test_parser.c tests/test_reader.c
-        tests/test_writer.c tests/test_vectors.c tests/test_conformance.c)
+        tests/test_writer.c tests/test_vectors.c tests/test_conformance.c
+        tests/test_canonical.c)
     target_link_libraries(maelys_json_tests PRIVATE maelys::json)
     add_test(NAME maelys_json COMMAND maelys_json_tests)
     set_tests_properties(maelys_json PROPERTIES

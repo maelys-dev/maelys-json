@@ -85,9 +85,21 @@ MAELYS_JSON_INTERNAL void maelys_json_error_set(
     const char *bytes, size_t size, size_t offset);
 MAELYS_JSON_INTERNAL int maelys_json_number_syntax(
     const char *bytes, size_t size);
+/* Canonical spelling of one byte inside a string literal: the two-byte short
+ * escape, `\u00xx` for another control, or the byte itself. Writes at most 6
+ * bytes into `out` and returns how many. The canonical form escapes by byte
+ * and never by code point, so no UTF-8 decoding is needed here. */
+MAELYS_JSON_INTERNAL size_t maelys_json_canonical_escape(
+    unsigned char byte, char *out);
 
 MAELYS_JSON_INTERNAL int maelys_json_utf8_validate(
     const unsigned char *bytes, size_t size);
+/* Orders two validated UTF-8 strings by their UTF-16 code units, as RFC 8785
+ * section 3.2.3 requires of object keys. Negative, zero or positive, like
+ * memcmp. This equals code point order except that supplementary characters
+ * sort before U+E000..U+FFFF. */
+MAELYS_JSON_INTERNAL int maelys_json_utf16_compare(
+    const char *left, size_t left_size, const char *right, size_t right_size);
 /* Decodes one code point from validated UTF-8. Returns its byte length. */
 MAELYS_JSON_INTERNAL size_t maelys_json_utf8_decode(
     const unsigned char *bytes, size_t size, uint32_t *out_point);

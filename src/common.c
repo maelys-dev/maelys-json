@@ -8,6 +8,38 @@ const char *maelys_json_version(void) {
     return MAELYS_JSON_VERSION_STRING;
 }
 
+size_t maelys_json_canonical_escape(unsigned char byte, char *out) {
+    static const char hex[] = "0123456789abcdef";
+    const char *escape = NULL;
+    switch (byte) {
+        case '"': escape = "\\\""; break;
+        case '\\': escape = "\\\\"; break;
+        case '\b': escape = "\\b"; break;
+        case '\f': escape = "\\f"; break;
+        case '\n': escape = "\\n"; break;
+        case '\r': escape = "\\r"; break;
+        case '\t': escape = "\\t"; break;
+        default: break;
+    }
+    if (escape) {
+        out[0] = escape[0];
+        out[1] = escape[1];
+        return 2u;
+    }
+    if (byte >= 0x20u) {
+        out[0] = (char)byte;
+        return 1u;
+    }
+    unsigned int code = byte;
+    out[0] = '\\';
+    out[1] = 'u';
+    out[2] = '0';
+    out[3] = '0';
+    out[4] = hex[(code >> 4u) & 0xfu];
+    out[5] = hex[code & 0xfu];
+    return 6u;
+}
+
 int maelys_json_profile_valid(maelys_json_profile_t profile) {
     return profile == MAELYS_JSON_PROFILE_RFC8259 ||
         profile == MAELYS_JSON_PROFILE_CONTRACT_ASCII;

@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+- **`maelys_json_document_is_canonical` answers without copying the
+  document.** It built a whole writer copy of the tree and a whole output
+  buffer, then compared the bytes, to answer yes or no: on a 765 KB document
+  that is a 44 MB node array, one allocation per string, and a 765 KB
+  buffer, per call. The check now walks the document against its own bytes
+  with a cursor and stops at the first disagreement, so the auxiliary space
+  is the cursor and the recursion, bounded by the depth the parse already
+  accepted. Reported by Maelys Git Core, which runs it on every grants
+  snapshot: on macOS the resident peak of forty checks fell from 459.7 MiB
+  to 54.8, the size of the documents themselves, and the median check from
+  5.744 ms to 2.350; on Linux from 36.8 MiB to 18.9 and from 6.053 ms to
+  2.522. The answers are unchanged.
+- The two rules the canonical form rests on now live in one place each and
+  are shared with the writer: the spelling of a byte inside a string
+  literal (`maelys_json_canonical_escape`) and the UTF-16 order of object
+  keys (`maelys_json_utf16_compare`). The check decides where bytes must
+  sit, never what they must be, so the two readings cannot drift apart.
+- New test suite `tests/test_canonical.c`: it carries the replaced
+  algorithm, written with the public API, and holds the two answers against
+  each other over the canonical vectors, the JSONTestSuite corpus, the fuzz
+  corpora and a table of variants aimed at whitespace, escape spellings,
+  key order with keys outside the basic plane, the integer bounds, `-0` and
+  the final newline. 359 files, both profiles, both flag settings, no
+  disagreement. The new fuzz target `fuzz_canonical` holds the same
+  comparison on arbitrary input.
+
 ## 0.3.0 — 2026-10-08
 
 - **Added** `maelys_json_writer_number_text`, which writes a number from its
