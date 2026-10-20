@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: MPL-2.0
 # Long fuzzing run with a corpus persisted between nights. Any crash is
-# uploaded as an artifact and fails the run.
+# uploaded as an artifact and fails the run. The corpus is minimized before
+# the run, and the memory ceiling is raised above the default of a short
+# run: libFuzzer holds the whole corpus resident and the sanitizers add
+# their bookkeeping on top.
 name: fuzz-nightly
 
 on:
@@ -11,7 +14,7 @@ on:
 jobs:
   fuzz:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     env:
       CC: clang
     steps:
@@ -22,9 +25,11 @@ jobs:
             build/corpus-parser
             build/corpus-roundtrip
             build/corpus-writer
+            build/corpus-number-text
           key: fuzz-corpus-${{ github.run_id }}
           restore-keys: fuzz-corpus-
-      - run: make fuzz-smoke FUZZ_CC=clang FUZZ_TIME=1200
+      - run: make fuzz-minimize FUZZ_CC=clang FUZZ_RSS=2560
+      - run: make fuzz-smoke FUZZ_CC=clang FUZZ_TIME=1200 FUZZ_RSS=2560
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

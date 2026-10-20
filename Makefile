@@ -183,21 +183,45 @@ fuzz:
 	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
 		$(FUZZ_DIR)/fuzz_number_text.c $(SOURCES) -o $(BUILD)/bin/fuzz-number-text
 
+# Resident-memory ceiling of one fuzzing process. The default fits a short
+# run on a fresh corpus; a night that carries its corpus over needs more,
+# since libFuzzer holds the whole corpus and the sanitizers add their own
+# bookkeeping on top. `fuzz-minimize` is the other half of that bargain.
+FUZZ_RSS ?= 1024
 FUZZ_TIME ?= 15
+FUZZ_TARGETS := parser roundtrip writer number-text
+
 fuzz-smoke: fuzz
 	@mkdir -p $(BUILD)/corpus-parser $(BUILD)/corpus-roundtrip $(BUILD)/corpus-writer \
 		$(BUILD)/corpus-number-text
 	$(BUILD)/bin/fuzz-parser -max_total_time=$(FUZZ_TIME) -timeout=2 \
-		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ -dict=$(FUZZ_DIR)/json.dict \
+		-rss_limit_mb=$(FUZZ_RSS) -artifact_prefix=$(BUILD)/ -dict=$(FUZZ_DIR)/json.dict \
 		$(BUILD)/corpus-parser $(FUZZ_DIR)/corpus
 	$(BUILD)/bin/fuzz-roundtrip -max_total_time=$(FUZZ_TIME) -timeout=2 \
-		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ -dict=$(FUZZ_DIR)/json.dict \
+		-rss_limit_mb=$(FUZZ_RSS) -artifact_prefix=$(BUILD)/ -dict=$(FUZZ_DIR)/json.dict \
 		$(BUILD)/corpus-roundtrip $(FUZZ_DIR)/corpus
 	$(BUILD)/bin/fuzz-writer -max_total_time=$(FUZZ_TIME) -timeout=2 \
-		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ $(BUILD)/corpus-writer
+		-rss_limit_mb=$(FUZZ_RSS) -artifact_prefix=$(BUILD)/ $(BUILD)/corpus-writer
 	$(BUILD)/bin/fuzz-number-text -max_total_time=$(FUZZ_TIME) -timeout=2 \
-		-rss_limit_mb=1024 -artifact_prefix=$(BUILD)/ $(BUILD)/corpus-number-text \
+		-rss_limit_mb=$(FUZZ_RSS) -artifact_prefix=$(BUILD)/ $(BUILD)/corpus-number-text \
 		$(FUZZ_DIR)/corpus-number-text
+
+# Rewrites each persisted corpus with the smallest set of inputs that keeps
+# its coverage: a corpus grown over many nights costs memory and start-up
+# time without finding more.
+fuzz-minimize: fuzz
+	@for name in $(FUZZ_TARGETS); do \
+		dir=$(BUILD)/corpus-$$name; \
+		test -d "$$dir" || continue; \
+		before=$$(find "$$dir" -type f | wc -l | tr -d ' '); \
+		rm -rf "$$dir.minimized" && mkdir -p "$$dir.minimized"; \
+		$(BUILD)/bin/fuzz-$$name -merge=1 -timeout=2 \
+			-rss_limit_mb=$(FUZZ_RSS) -artifact_prefix=$(BUILD)/ \
+			"$$dir.minimized" "$$dir" >/dev/null 2>&1 || \
+			{ echo "fuzz-minimize: $$name failed"; rm -rf "$$dir.minimized"; exit 1; }; \
+		rm -rf "$$dir" && mv "$$dir.minimized" "$$dir"; \
+		echo "fuzz-minimize: $$name $$before -> $$(find "$$dir" -type f | wc -l | tr -d ' ') files"; \
+	done
 
 install: all
 	install -d $(DESTDIR)$(PREFIX)/include/maelys $(DESTDIR)$(PREFIX)/lib/pkgconfig
