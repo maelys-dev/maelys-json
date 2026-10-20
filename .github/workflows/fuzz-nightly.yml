@@ -26,6 +26,7 @@ jobs:
             build/corpus-roundtrip
             build/corpus-writer
             build/corpus-number-text
+            build/corpus-canonical
           key: fuzz-corpus-${{ github.run_id }}
           restore-keys: fuzz-corpus-
       - run: make fuzz-minimize FUZZ_CC=clang FUZZ_RSS=2560

@@ -37,6 +37,7 @@ int main(int argc, char **argv) {
         total += run_suite(test_reader_suite(), &failures);
         total += run_suite(test_writer_suite(), &failures);
         total += run_suite(test_vectors_suite(), &failures);
+        total += run_suite(test_canonical_suite(), &failures);
         total += run_suite(test_conformance_suite(), &failures);
     }
     printf("%s: %d tests, %zu failures (maelys-json %s)\n",

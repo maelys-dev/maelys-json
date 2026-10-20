@@ -82,33 +82,13 @@ static maelys_json_result_t append_u16_escape(serializer_t *s, uint32_t unit) {
     return append(s, encoded, sizeof(encoded));
 }
 
-static const char *short_escape(unsigned char byte) {
-    switch (byte) {
-        case '"': return "\\\"";
-        case '\\': return "\\\\";
-        case '\b': return "\\b";
-        case '\f': return "\\f";
-        case '\n': return "\\n";
-        case '\r': return "\\r";
-        case '\t': return "\\t";
-        default: return NULL;
-    }
-}
-
 static maelys_json_result_t append_string(
     serializer_t *s, const char *bytes, size_t size) {
     maelys_json_result_t result = append_byte(s, '"');
     size_t i = 0u;
     while (result == MAELYS_JSON_OK && i < size) {
         unsigned char byte = (unsigned char)bytes[i];
-        const char *escape = short_escape(byte);
-        if (escape) {
-            result = append(s, escape, 2u);
-            ++i;
-        } else if (byte < 0x20u) {
-            result = append_u16_escape(s, byte);
-            ++i;
-        } else if (byte >= 0x80u && s->ascii) {
+        if (byte >= 0x80u && s->ascii) {
             uint32_t point;
             i += maelys_json_utf8_decode((const unsigned char *)bytes + i,
                 size - i, &point);
@@ -122,7 +102,10 @@ static maelys_json_result_t append_string(
                 result = append_u16_escape(s, point);
             }
         } else {
-            result = append_byte(s, (char)byte);
+            /* Canonical spelling, the one the check in canonical.c expects. */
+            char escaped[6];
+            size_t length = maelys_json_canonical_escape(byte, escaped);
+            result = append(s, escaped, length);
             ++i;
         }
     }
@@ -146,58 +129,12 @@ static maelys_json_result_t append_number(
     return append(s, number, (size_t)length);
 }
 
-/* Streams the UTF-16 code units of a validated UTF-8 key. */
-typedef struct utf16_cursor {
-    const unsigned char *bytes;
-    size_t size;
-    size_t offset;
-    uint32_t pending_low_surrogate;
-} utf16_cursor_t;
-
-static int utf16_next(utf16_cursor_t *cursor, uint32_t *out_unit) {
-    if (cursor->pending_low_surrogate) {
-        *out_unit = cursor->pending_low_surrogate;
-        cursor->pending_low_surrogate = 0u;
-        return 1;
-    }
-    if (cursor->offset >= cursor->size) {
-        return 0;
-    }
-    uint32_t point;
-    cursor->offset += maelys_json_utf8_decode(cursor->bytes + cursor->offset,
-        cursor->size - cursor->offset, &point);
-    if (point >= 0x10000u) {
-        point -= 0x10000u;
-        *out_unit = 0xd800u + (point >> 10u);
-        cursor->pending_low_surrogate = 0xdc00u + (point & 0x3ffu);
-    } else {
-        *out_unit = point;
-    }
-    return 1;
-}
-
-/* Key order of RFC 8785 section 3.2.3: unescaped names compared as arrays
- * of UTF-16 code units treated as unsigned integers; a prefix sorts first.
- * This equals code point order except that supplementary characters
- * (U+10000 and above) sort before U+E000..U+FFFF. */
+/* Key order of RFC 8785 section 3.2.3, through the shared comparison. */
 static int key_compare(
     const maelys_json_writer_t *writer, size_t left, size_t right) {
     const maelys_json_node_t *a = &writer->nodes[left];
     const maelys_json_node_t *b = &writer->nodes[right];
-    utf16_cursor_t ca = {(const unsigned char *)a->key, a->key_size, 0u, 0u};
-    utf16_cursor_t cb = {(const unsigned char *)b->key, b->key_size, 0u, 0u};
-    for (;;) {
-        uint32_t ua;
-        uint32_t ub;
-        int has_a = utf16_next(&ca, &ua);
-        int has_b = utf16_next(&cb, &ub);
-        if (!has_a || !has_b) {
-            return has_a - has_b;
-        }
-        if (ua != ub) {
-            return ua < ub ? -1 : 1;
-        }
-    }
+    return maelys_json_utf16_compare(a->key, a->key_size, b->key, b->key_size);
 }
 
 static void merge_keys(

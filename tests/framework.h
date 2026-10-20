@@ -71,5 +71,6 @@ test_suite_t test_reader_suite(void);
 test_suite_t test_writer_suite(void);
 test_suite_t test_vectors_suite(void);
 test_suite_t test_conformance_suite(void);
+test_suite_t test_canonical_suite(void);
 
 #endif
