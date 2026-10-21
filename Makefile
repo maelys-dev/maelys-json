@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MPL-2.0
 # maelys-json build. `make check` is the gate used by CI.
 #
+# This repository's own -Iinclude comes before CPPFLAGS: a copy of
+# include/maelys/json.h installed on the machine, by Homebrew for instance,
+# would otherwise be compiled against instead of the one in the tree, since
+# CPPFLAGS carries -I/opt/homebrew/include on such a host.
 # CFLAGS/CXXFLAGS/CPPFLAGS belong to the user and are appended last; the
 # project adds its own standard, warnings and include flags. WERROR is empty
 # by default so a newer compiler never breaks a downstream build; the check
@@ -24,8 +28,8 @@ WARNINGS := -Wall -Wextra -Wpedantic -Wshadow -Wstrict-prototypes \
 	-Wmissing-prototypes -Wconversion -Wsign-conversion -Wcast-qual \
 	-Wformat=2 -Wvla -Wundef -Wswitch-enum -Wimplicit-fallthrough
 INCLUDES := -Iinclude
-ALL_CFLAGS = $(CPPFLAGS) $(INCLUDES) $(CSTD) $(WARNINGS) $(WERROR) $(CFLAGS)
-ALL_CXXFLAGS = $(CPPFLAGS) $(INCLUDES) $(CXXSTD) -Wall -Wextra -Wpedantic $(WERROR) $(CXXFLAGS)
+ALL_CFLAGS = $(INCLUDES) $(CPPFLAGS) $(CSTD) $(WARNINGS) $(WERROR) $(CFLAGS)
+ALL_CXXFLAGS = $(INCLUDES) $(CPPFLAGS) $(CXXSTD) -Wall -Wextra -Wpedantic $(WERROR) $(CXXFLAGS)
 
 LLVM_PREFIX ?= $(shell if test -d /opt/homebrew/opt/llvm/bin; then \
 	printf '%s' /opt/homebrew/opt/llvm/bin/; fi)
@@ -46,9 +50,13 @@ TEST_SOURCES := tests/main.c tests/test_parser.c tests/test_reader.c \
 	tests/test_canonical.c
 # Fuzz harnesses: libFuzzer entry points, never linked into the test binary.
 FUZZ_DIR := tests/fuzz
-FUZZ_SOURCES := $(FUZZ_DIR)/fuzz_parser.c $(FUZZ_DIR)/fuzz_roundtrip.c \
-	$(FUZZ_DIR)/fuzz_writer.c $(FUZZ_DIR)/fuzz_number_text.c \
-	$(FUZZ_DIR)/fuzz_canonical.c
+# The fuzz targets, named once: `fuzz` builds them, `fuzz-smoke` runs them
+# and `fuzz-minimize` rewrites their corpora from this list alone. A target
+# added here is a target that runs; a target built but never run was a real
+# defect, and naming it in three places is what let it happen.
+FUZZ_TARGETS := parser roundtrip writer number-text canonical
+FUZZ_SOURCES := $(foreach name,$(FUZZ_TARGETS),\
+	$(FUZZ_DIR)/fuzz_$(subst -,_,$(name)).c)
 OBJECTS := $(SOURCES:src/%.c=$(BUILD)/obj/%.o)
 LIBRARY := $(BUILD)/lib/libmaelys-json.a
 TEST := $(BUILD)/bin/test-json
@@ -130,7 +138,7 @@ check: test lint
 # use of a parameter).
 lint:
 	@for define in "" -DNDEBUG; do for f in $(SOURCES) $(TEST_SOURCES) $(FUZZ_SOURCES) tools/*.c; do \
-		$(CC) $(CPPFLAGS) $$define $(INCLUDES) $(CSTD) $(WARNINGS) -Werror -fsyntax-only $$f || exit 1; \
+		$(CC) $(INCLUDES) $(CPPFLAGS) $$define $(CSTD) $(WARNINGS) -Werror -fsyntax-only $$f || exit 1; \
 	done; done
 	@echo "lint: OK"
 
@@ -141,7 +149,7 @@ cmake-check:
 
 tidy:
 	@test -n "$(CLANG_TIDY)" || { echo "clang-tidy not found"; exit 1; }
-	$(CLANG_TIDY) --quiet $(SOURCES) -- $(CPPFLAGS) $(INCLUDES) $(CSTD)
+	$(CLANG_TIDY) --quiet $(SOURCES) -- $(INCLUDES) $(CPPFLAGS) $(CSTD)
 
 format:
 	@test -n "$(CLANG_FORMAT)" || { echo "clang-format not found"; exit 1; }
@@ -177,16 +185,13 @@ conformance: $(TEST)
 
 fuzz:
 	@mkdir -p $(BUILD)/bin
-	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
-		$(FUZZ_DIR)/fuzz_parser.c $(SOURCES) -o $(BUILD)/bin/fuzz-parser
-	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
-		$(FUZZ_DIR)/fuzz_roundtrip.c $(SOURCES) -o $(BUILD)/bin/fuzz-roundtrip
-	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
-		$(FUZZ_DIR)/fuzz_writer.c $(SOURCES) -o $(BUILD)/bin/fuzz-writer
-	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
-		$(FUZZ_DIR)/fuzz_number_text.c $(SOURCES) -o $(BUILD)/bin/fuzz-number-text
-	$(FUZZ_CC) $(CPPFLAGS) $(INCLUDES) $(CSTD) -O1 -g -fsanitize=fuzzer,address,undefined \
-		$(FUZZ_DIR)/fuzz_canonical.c $(SOURCES) -o $(BUILD)/bin/fuzz-canonical
+	@for name in $(FUZZ_TARGETS); do \
+		source=$(FUZZ_DIR)/fuzz_$$(printf '%s' "$$name" | tr - _).c; \
+		echo "$(FUZZ_CC) $$source -o $(BUILD)/bin/fuzz-$$name"; \
+		$(FUZZ_CC) $(INCLUDES) $(CPPFLAGS) $(CSTD) -O1 -g \
+			-fsanitize=fuzzer,address,undefined \
+			"$$source" $(SOURCES) -o $(BUILD)/bin/fuzz-$$name || exit 1; \
+	done
 
 # Resident-memory ceiling of one fuzzing process. The default fits a short
 # run on a fresh corpus; a night that carries its corpus over needs more,
@@ -194,22 +199,18 @@ fuzz:
 # bookkeeping on top. `fuzz-minimize` is the other half of that bargain.
 FUZZ_RSS ?= 1024
 FUZZ_TIME ?= 15
-FUZZ_TARGETS := parser roundtrip writer number-text
 
 fuzz-smoke: fuzz
-	@mkdir -p $(BUILD)/corpus-parser $(BUILD)/corpus-roundtrip $(BUILD)/corpus-writer \
-		$(BUILD)/corpus-number-text $(BUILD)/corpus-canonical
-	$(BUILD)/bin/fuzz-parser -max_total_time=$(FUZZ_TIME) -timeout=2 \
-		-rss_limit_mb=$(FUZZ_RSS) -artifact_prefix=$(BUILD)/ -dict=$(FUZZ_DIR)/json.dict \
-		$(BUILD)/corpus-parser $(FUZZ_DIR)/corpus
-	$(BUILD)/bin/fuzz-roundtrip -max_total_time=$(FUZZ_TIME) -timeout=2 \
-		-rss_limit_mb=$(FUZZ_RSS) -artifact_prefix=$(BUILD)/ -dict=$(FUZZ_DIR)/json.dict \
-		$(BUILD)/corpus-roundtrip $(FUZZ_DIR)/corpus
-	$(BUILD)/bin/fuzz-writer -max_total_time=$(FUZZ_TIME) -timeout=2 \
-		-rss_limit_mb=$(FUZZ_RSS) -artifact_prefix=$(BUILD)/ $(BUILD)/corpus-writer
-	$(BUILD)/bin/fuzz-number-text -max_total_time=$(FUZZ_TIME) -timeout=2 \
-		-rss_limit_mb=$(FUZZ_RSS) -artifact_prefix=$(BUILD)/ $(BUILD)/corpus-number-text \
-		$(FUZZ_DIR)/corpus-number-text
+	@for name in $(FUZZ_TARGETS); do \
+		mkdir -p $(BUILD)/corpus-$$name; \
+		seeds=$(FUZZ_DIR)/corpus-$$name; \
+		test -d "$$seeds" || seeds=$(FUZZ_DIR)/corpus; \
+		echo "fuzz-smoke: $$name, $(FUZZ_TIME)s"; \
+		$(BUILD)/bin/fuzz-$$name -max_total_time=$(FUZZ_TIME) -timeout=2 \
+			-rss_limit_mb=$(FUZZ_RSS) -artifact_prefix=$(BUILD)/ \
+			-dict=$(FUZZ_DIR)/json.dict \
+			$(BUILD)/corpus-$$name "$$seeds" || exit 1; \
+	done
 
 # Rewrites each persisted corpus with the smallest set of inputs that keeps
 # its coverage: a corpus grown over many nights costs memory and start-up

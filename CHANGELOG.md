@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **The fuzz targets are named once.** `fuzz`, `fuzz-smoke` and
+  `fuzz-minimize` each carried their own list, and the merge that brought
+  the canonical differential in kept the line that builds `fuzz_canonical`
+  while losing the one that runs it: the target was compiled every night
+  and never executed, and `make fuzz-smoke` said nothing about it. The
+  three recipes now read `FUZZ_TARGETS`, so a target added there is a
+  target that builds, runs and has its corpus minimized. Each run announces
+  itself, which is what would have shown the gap.
+- **This repository's `-Iinclude` comes before `CPPFLAGS`.** On a machine
+  where `libmaelys-json` is installed, `CPPFLAGS` carries
+  `-I/opt/homebrew/include` and the installed copy of
+  `include/maelys/json.h` was compiled against instead of the one in the
+  tree: the fuzz build failed on a macro the installed 0.2.0 header does not
+  have. A build of this repository now reads its own header, whatever is
+  installed beside it.
+
 ## 0.3.1 — 2026-10-20
 
 - **`maelys_json_document_is_canonical` answers without copying the
