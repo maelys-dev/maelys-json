@@ -3,11 +3,11 @@
 `libmaelys-json` is the bounded JSON reader and canonical writer shared by
 Maelys security contracts. C11, no dependency, opaque ABI, no global state.
 
-- **Two profiles, one parser.** `RFC8259` is strict RFC 8259 with UTF-8
+- **Explicit profiles, one parser.** `RFC8259` is strict RFC 8259 with UTF-8
   validation and full escape handling. `CONTRACT_ASCII` restricts strings
   and keys to escape-free printable ASCII. Neither profile makes a document
   canonical by itself: `maelys_json_document_is_canonical` does.
-- **Always rejected:** duplicate decoded keys, trailing bytes, invalid UTF-8,
+- **Always rejected:** trailing bytes, invalid UTF-8,
   unpaired surrogates, U+0000, byte order marks.
 - **Bounded:** byte, nesting and token limits are explicit; memory is
   proportional to the input.
@@ -15,6 +15,28 @@ Maelys security contracts. C11, no dependency, opaque ABI, no global state.
   (RFC 8785) key ordering and string serialization with an integer-only
   numeric domain extended to exact int64/uint64. Indented and ASCII-only
   presentation forms are available as flags.
+
+### Tolerant input (unreleased, interface generation 4)
+
+The existing RFC8259 and CONTRACT_ASCII profiles still reject duplicate decoded
+keys. Choose `MAELYS_JSON_PROFILE_RFC8259_LAST_WINS` explicitly for foreign input
+that needs last-occurrence handling. A repeated key replaces the complete value,
+without merging objects. Indexed traversal follows the order of the surviving
+last occurrences; all accessors and writer copies see that same unique tree.
+
+`maelys_json_document_duplicate_count` counts repeated occurrences in the entire
+source, including discarded subtrees. Every value still consumes input, depth
+and token limits and must be valid. Discarded decoded storage is compacted away
+before the document is published; original source bytes remain owned. Any source
+with duplicates is noncanonical, even if the values are equal. The new profile
+is reader-only: writer_create rejects it with ARGUMENT. Rewrite a tolerant
+document with an RFC8259 writer and writer_value; only surviving members are
+copied. Writers always reject duplicate keys.
+
+`maelys_json_document_parse_allocation_bound` provides an allocation-free,
+conservative heap reservation for parsing and document ownership, including
+compaction. It excludes the caller input, parse_file's input buffer, stack and
+allocator overhead; it is not an RSS promise. Zero limits retain their defaults.
 
 ## Example
 

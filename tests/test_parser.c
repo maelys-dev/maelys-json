@@ -459,7 +459,196 @@ static int parse_file(void) {
     return 0;
 }
 
+static int last_wins(void) {
+    static const struct {
+        const char *input, *output;
+        size_t duplicates;
+    } vectors[] = {{"{\"id\":1,\"id\":2}", "{\"id\":2}", 1u},
+        {"{\"id\":1,\"id\":1,\"id\":1}", "{\"id\":1}", 2u},
+        {"{\"a\":1,\"b\":2,\"a\":3}", "{\"a\":3,\"b\":2}", 1u},
+        {"{\"x\":{\"a\":1,\"a\":2},\"x\":0}", "{\"x\":0}", 2u},
+        {"{\"x\":[1,2],\"x\":{\"a\":1},\"x\":null}", "{\"x\":null}", 2u},
+        {"[{\"id\":1,\"\\u0069d\":2},{\"id\":3}]", "[{\"id\":2},{\"id\":3}]",
+            1u},
+        {"{\"\":1,\"\":false}", "{\"\":false}", 1u},
+        {"{\"\\ud83d\\ude80\":1,\"\xf0\x9f\x9a\x80\":2}",
+            "{\"\xf0\x9f\x9a\x80\":2}", 1u},
+        {"{\"x\":1,\"y\":[{\"z\":1,\"z\":2}],\"x\":{}}",
+            "{\"x\":{},\"y\":[{\"z\":2}]}", 2u}};
+    for (size_t i = 0u; i < sizeof(vectors) / sizeof(vectors[0]); ++i) {
+        maelys_json_document_t *d = NULL, *strict = NULL;
+        maelys_json_writer_t *w = NULL;
+        size_t count = SIZE_MAX, size;
+        char *bytes;
+        int canonical = 1;
+        CHECK_RESULT(parse_text(vectors[i].input, MAELYS_JSON_PROFILE_RFC8259,
+                         NULL, &strict, NULL),
+            MAELYS_JSON_ERR_DUPLICATE_KEY);
+        CHECK_RESULT(parse_text(vectors[i].input,
+                         MAELYS_JSON_PROFILE_RFC8259_LAST_WINS, NULL, &d, NULL),
+            MAELYS_JSON_OK);
+        CHECK_RESULT(
+            maelys_json_document_duplicate_count(d, &count), MAELYS_JSON_OK);
+        CHECK(count == vectors[i].duplicates);
+        CHECK_RESULT(maelys_json_document_is_canonical(d, 0u, &canonical),
+            MAELYS_JSON_OK);
+        CHECK(!canonical);
+        CHECK_RESULT(maelys_json_document_is_canonical(d, 8u, &canonical),
+            MAELYS_JSON_ERR_ARGUMENT);
+        CHECK_RESULT(maelys_json_writer_create(
+                         MAELYS_JSON_PROFILE_RFC8259, NULL, 0u, &w),
+            MAELYS_JSON_OK);
+        CHECK_RESULT(maelys_json_writer_value(w, d, 0u), MAELYS_JSON_OK);
+        CHECK_RESULT(
+            maelys_json_writer_finish(w, &bytes, &size), MAELYS_JSON_OK);
+        CHECK(size == strlen(vectors[i].output) &&
+            !strcmp(bytes, vectors[i].output));
+        CHECK_RESULT(
+            parse_text(bytes, MAELYS_JSON_PROFILE_RFC8259, NULL, &strict, NULL),
+            MAELYS_JSON_OK);
+        CHECK_RESULT(maelys_json_document_duplicate_count(strict, &count),
+            MAELYS_JSON_OK);
+        CHECK(count == 0u);
+        free(bytes);
+        maelys_json_document_release(strict);
+        maelys_json_document_release(d);
+        maelys_json_writer_release(w);
+    }
+    maelys_json_document_t *d = NULL;
+    CHECK_RESULT(parse_text("{\"a\":1,\"b\":2,\"a\":3}",
+                     MAELYS_JSON_PROFILE_RFC8259_LAST_WINS, NULL, &d, NULL),
+        MAELYS_JSON_OK);
+    size_t count;
+    CHECK_RESULT(maelys_json_object_size(d, 0u, &count), MAELYS_JSON_OK);
+    CHECK(count == 2u);
+    for (size_t i = 0; i < count; ++i) {
+        maelys_json_view_t key;
+        maelys_json_value_t value, found;
+        uint64_t number;
+        CHECK_RESULT(maelys_json_object_member_at(d, 0u, i, &key, &value),
+            MAELYS_JSON_OK);
+        CHECK(!strcmp(key.data, i ? "a" : "b"));
+        CHECK_RESULT(
+            maelys_json_object_get(d, 0u, key.data, &found), MAELYS_JSON_OK);
+        CHECK(found == value);
+        CHECK_RESULT(maelys_json_value_u64(d, value, &number), MAELYS_JSON_OK);
+        CHECK(number == (i ? 3u : 2u));
+    }
+    maelys_json_document_release(d);
+    count = 42u;
+    CHECK_RESULT(maelys_json_document_duplicate_count(NULL, &count),
+        MAELYS_JSON_ERR_ARGUMENT);
+    CHECK(count == 42u);
+    maelys_json_writer_t *w = NULL;
+    CHECK_RESULT(
+        maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL, 0u, &w),
+        MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_object_begin(w), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_key_cstr(w, "id"), MAELYS_JSON_OK);
+    CHECK_RESULT(maelys_json_writer_null(w), MAELYS_JSON_OK);
+    CHECK_RESULT(
+        maelys_json_writer_key_cstr(w, "id"), MAELYS_JSON_ERR_DUPLICATE_KEY);
+    maelys_json_writer_release(w);
+    return 0;
+}
+
+static int tolerant_without_duplicates(void) {
+    const char *inputs[] = {"{}", "[]", "-0", "0", "1.5", "{\"a\":1}",
+        "{\"a\":1}\n", "{\"a\":\"\\u0061\"}", "{\"b\":0,\"a\":1}"};
+    for (size_t i = 0; i < sizeof(inputs) / sizeof(inputs[0]); ++i) {
+        maelys_json_document_t *strict = NULL, *tolerant = NULL;
+        CHECK_RESULT(parse_text(inputs[i], MAELYS_JSON_PROFILE_RFC8259, NULL,
+                         &strict, NULL),
+            MAELYS_JSON_OK);
+        CHECK_RESULT(
+            parse_text(inputs[i], MAELYS_JSON_PROFILE_RFC8259_LAST_WINS, NULL,
+                &tolerant, NULL),
+            MAELYS_JSON_OK);
+        for (unsigned int flags = 0; flags <= MAELYS_JSON_WRITER_FINAL_NEWLINE;
+            ++flags) {
+            int a = -1, b = -1;
+            CHECK_RESULT(maelys_json_document_is_canonical(strict, flags, &a),
+                MAELYS_JSON_OK);
+            CHECK_RESULT(maelys_json_document_is_canonical(tolerant, flags, &b),
+                MAELYS_JSON_OK);
+            CHECK(a == b);
+        }
+        maelys_json_document_release(strict);
+        maelys_json_document_release(tolerant);
+    }
+    char input[1024];
+    size_t n = 0;
+    memcpy(input, "{\"x\":", 5);
+    n = 5;
+    for (size_t i = 0; i < 255u; ++i) {
+        input[n++] = '[';
+    }
+    input[n++] = '0';
+    for (size_t i = 0; i < 255u; ++i) {
+        input[n++] = ']';
+    }
+    memcpy(input + n, ",\"x\":1}", 8);
+    maelys_json_limits_t limits = {1024u, 256u, 8192u};
+    maelys_json_document_t *d = NULL;
+    CHECK_RESULT(parse_text(input, MAELYS_JSON_PROFILE_RFC8259_LAST_WINS,
+                     &limits, &d, NULL),
+        MAELYS_JSON_OK);
+    maelys_json_document_release(d);
+    limits.maximum_depth = 255u;
+    CHECK_RESULT(parse_text(input, MAELYS_JSON_PROFILE_RFC8259_LAST_WINS,
+                     &limits, &d, NULL),
+        MAELYS_JSON_ERR_LIMIT);
+    return 0;
+}
+
+static int last_wins_limits(void) {
+    const maelys_json_profile_t p = MAELYS_JSON_PROFILE_RFC8259_LAST_WINS;
+    const char *text = "{\"x\":[0,1],\"x\":2}"; /* Seven source tokens. */
+    maelys_json_document_t *d = NULL;
+    maelys_json_limits_t limits = {strlen(text), 2u, 7u};
+    CHECK_RESULT(parse_text(text, p, &limits, &d, NULL), MAELYS_JSON_OK);
+    maelys_json_document_release(d);
+    limits.maximum_tokens = 6u;
+    CHECK_RESULT(parse_text(text, p, &limits, &d, NULL), MAELYS_JSON_ERR_LIMIT);
+    limits.maximum_tokens = 7u;
+    limits.maximum_depth = 1u;
+    CHECK_RESULT(parse_text(text, p, &limits, &d, NULL), MAELYS_JSON_ERR_LIMIT);
+    limits.maximum_depth = 2u;
+    --limits.maximum_bytes;
+    CHECK_RESULT(parse_text(text, p, &limits, &d, NULL), MAELYS_JSON_ERR_LIMIT);
+    CHECK_RESULT(parse_text("{\"x\":[bad],\"x\":0}", p, NULL, &d, NULL),
+        MAELYS_JSON_ERR_SYNTAX);
+    CHECK_RESULT(parse_text("{\"x\":\"\\u0000\",\"x\":0}", p, NULL, &d, NULL),
+        MAELYS_JSON_ERR_SYNTAX);
+    size_t bound = 42u;
+    CHECK_RESULT(maelys_json_document_parse_allocation_bound(
+                     strlen(text), p, &limits, &bound),
+        MAELYS_JSON_ERR_LIMIT);
+    CHECK(bound == 42u);
+    CHECK_RESULT(
+        maelys_json_document_parse_allocation_bound(0u, p, NULL, &bound),
+        MAELYS_JSON_OK);
+    size_t previous = bound;
+    for (size_t n = 1u; n < 4096u; ++n) {
+        CHECK_RESULT(
+            maelys_json_document_parse_allocation_bound(n, p, NULL, &bound),
+            MAELYS_JSON_OK);
+        CHECK(bound >= previous);
+        previous = bound;
+    }
+    limits = (maelys_json_limits_t){SIZE_MAX / 2u - 1u, 256u, SIZE_MAX / 256u};
+    bound = 42u;
+    CHECK_RESULT(maelys_json_document_parse_allocation_bound(
+                     limits.maximum_bytes, p, &limits, &bound),
+        MAELYS_JSON_ERR_LIMIT);
+    CHECK(bound == 42u);
+    return 0;
+}
+
 static const test_case_t cases[] = {
+    {"tolerant_without_duplicates", tolerant_without_duplicates},
+    {"last_wins", last_wins},
+    {"last_wins_limits", last_wins_limits},
     {"rfc_document", rfc_document},
     {"contract_profile", contract_profile},
     {"empty_and_whitespace", empty_and_whitespace},

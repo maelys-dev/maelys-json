@@ -122,7 +122,7 @@ bench: $(BENCH)
 # Full gate: tests with -Werror, C++ header check, strict lint, size and
 # version policies, whitespace hygiene.
 check: WERROR := -Werror
-check: test lint
+check: test lint test-allocation
 	@mkdir -p $(BUILD)
 	$(CXX) $(ALL_CXXFLAGS) tests/header_cpp.cpp -c -o $(BUILD)/header-cpp.o
 	@find src include tests -type f \( -name '*.c' -o -name '*.h' \) \
@@ -239,3 +239,14 @@ clean:
 	rm -rf $(BUILD) $(BUILD)-asan $(BUILD)-ubsan $(BUILD)-asan-ubsan $(BUILD)-coverage
 
 -include $(OBJECTS:.o=.d)
+
+# Verify the parser's public heap bound and cleanup at every allocation failure.
+$(BUILD)/allocation/%.o: src/%.c $(HEADERS) $(FLAGS_STAMP)
+	@mkdir -p $(@D)
+	$(CC) $(ALL_CFLAGS) -Dmalloc=maelys_test_malloc -Dcalloc=maelys_test_calloc -Drealloc=maelys_test_realloc -Dfree=maelys_test_free -c $< -o $@
+$(BUILD)/bin/test-allocation: tests/test_allocation.c $(SOURCES:src/%.c=$(BUILD)/allocation/%.o)
+	@mkdir -p $(@D)
+	$(CC) $(ALL_CFLAGS) $^ -o $@
+.PHONY: test-allocation
+test-allocation: $(BUILD)/bin/test-allocation
+	$(BUILD)/bin/test-allocation

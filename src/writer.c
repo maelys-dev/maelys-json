@@ -148,6 +148,7 @@ maelys_json_result_t maelys_json_writer_create(
     const unsigned int known_flags = MAELYS_JSON_WRITER_FINAL_NEWLINE |
         MAELYS_JSON_WRITER_INDENT | MAELYS_JSON_WRITER_ASCII;
     if (!out_writer || !maelys_json_profile_valid(profile) ||
+        profile == MAELYS_JSON_PROFILE_RFC8259_LAST_WINS ||
         (flags & ~known_flags)) {
         return MAELYS_JSON_ERR_ARGUMENT;
     }

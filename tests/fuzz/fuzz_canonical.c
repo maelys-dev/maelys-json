@@ -2,8 +2,8 @@
 /*
  * Holds the streaming canonical check against the implementation it
  * replaced, on whatever the parser accepts: same status and same answer,
- * under both flag settings and both profiles. The reference copies the
- * document into a writer and compares the serialized bytes, which is what
+ * under both flag settings and all three reader profiles. The reference copies
+ * the document into a writer and compares the serialized bytes, which is what
  * this check must agree with for ever, and never with a second reading of
  * the format written here.
  */
@@ -49,5 +49,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     }
     compare((const char *)data, size, MAELYS_JSON_PROFILE_RFC8259);
     compare((const char *)data, size, MAELYS_JSON_PROFILE_CONTRACT_ASCII);
+    compare((const char *)data, size, MAELYS_JSON_PROFILE_RFC8259_LAST_WINS);
     return 0;
 }

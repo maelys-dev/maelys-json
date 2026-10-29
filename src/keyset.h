@@ -40,4 +40,9 @@ MAELYS_JSON_INTERNAL int maelys_json_keyset_contains(
 MAELYS_JSON_INTERNAL maelys_json_result_t maelys_json_keyset_insert(
     maelys_json_keyset_t *set, size_t index);
 
+/* Parser-only replacement; previous is VALUE_NONE for a new key. */
+MAELYS_JSON_INTERNAL maelys_json_result_t maelys_json_keyset_insert_last(
+    maelys_json_keyset_t *set, size_t index, size_t *previous);
+MAELYS_JSON_INTERNAL size_t maelys_json_keyset_capacity(size_t expected);
+
 #endif

@@ -52,14 +52,19 @@ static size_t *allocate_slots(size_t capacity) {
     return slots;
 }
 
-maelys_json_result_t maelys_json_keyset_init(
-    maelys_json_keyset_t *set, size_t expected,
-    maelys_json_keyset_key_fn key_of, const void *context) {
-    MAELYS_JSON_ASSERT(set && key_of && expected <= SIZE_MAX / 4u);
+size_t maelys_json_keyset_capacity(size_t expected) {
     size_t capacity = KEYSET_MINIMUM_CAPACITY;
     while (capacity < expected * 2u) {
         capacity <<= 1u;
     }
+    return capacity;
+}
+
+maelys_json_result_t maelys_json_keyset_init(
+    maelys_json_keyset_t *set, size_t expected,
+    maelys_json_keyset_key_fn key_of, const void *context) {
+    MAELYS_JSON_ASSERT(set && key_of && expected <= SIZE_MAX / 4u);
+    size_t capacity = maelys_json_keyset_capacity(expected);
     *set = (maelys_json_keyset_t){
         .capacity = capacity, .key_of = key_of, .context = context
     };
@@ -109,13 +114,18 @@ static maelys_json_result_t grow(maelys_json_keyset_t *set) {
     return MAELYS_JSON_OK;
 }
 
-maelys_json_result_t maelys_json_keyset_insert(
-    maelys_json_keyset_t *set, size_t index) {
+static maelys_json_result_t insert(
+    maelys_json_keyset_t *set, size_t index, size_t *previous) {
     MAELYS_JSON_ASSERT(set && set->slots && index != MAELYS_JSON_VALUE_NONE);
     maelys_json_keyset_key_t key = set->key_of(set->context, index);
     int found;
     size_t slot = find_slot(set, set->slots, set->capacity, key, &found);
     if (found) {
+        if (previous) {
+            *previous = set->slots[slot];
+            set->slots[slot] = index;
+            return MAELYS_JSON_OK;
+        }
         return MAELYS_JSON_ERR_DUPLICATE_KEY;
     }
     if ((set->count + 1u) * 2u > set->capacity) {
@@ -128,5 +138,19 @@ maelys_json_result_t maelys_json_keyset_insert(
     }
     set->slots[slot] = index;
     ++set->count;
+    if (previous) {
+        *previous = MAELYS_JSON_VALUE_NONE;
+    }
     return MAELYS_JSON_OK;
+}
+
+maelys_json_result_t maelys_json_keyset_insert(
+    maelys_json_keyset_t *set, size_t index) {
+    return insert(set, index, NULL);
+}
+
+maelys_json_result_t maelys_json_keyset_insert_last(
+    maelys_json_keyset_t *set, size_t index, size_t *previous) {
+    MAELYS_JSON_ASSERT(previous);
+    return insert(set, index, previous);
 }

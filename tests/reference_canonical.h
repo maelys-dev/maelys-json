@@ -77,8 +77,15 @@ static inline maelys_json_result_t reference_is_canonical(
         .maximum_tokens = size + 1u
     };
     maelys_json_writer_t *writer = NULL;
-    maelys_json_result_t result = maelys_json_writer_create(profile, &limits,
-        flags, &writer);
+    /* The tolerant reader has RFC8259 text semantics. Serialize survivors
+     * with the strict writer and compare against the original source: this
+     * detects duplicates independently of the document warning counter. */
+    maelys_json_profile_t writer_profile =
+        profile == MAELYS_JSON_PROFILE_RFC8259_LAST_WINS
+        ? MAELYS_JSON_PROFILE_RFC8259
+        : profile;
+    maelys_json_result_t result =
+        maelys_json_writer_create(writer_profile, &limits, flags, &writer);
     if (result != MAELYS_JSON_OK) {
         return result;
     }

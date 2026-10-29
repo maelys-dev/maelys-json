@@ -189,6 +189,10 @@ maelys_json_result_t maelys_json_document_is_canonical(
         (flags & ~MAELYS_JSON_WRITER_FINAL_NEWLINE)) {
         return MAELYS_JSON_ERR_ARGUMENT;
     }
+    if (document->duplicate_count) {
+        *out_canonical = 0;
+        return MAELYS_JSON_OK;
+    }
     cursor_t cursor = {document->bytes, document->size, 0u};
     int canonical = document->token_count != 0u &&
         expect_value(&cursor, document, 0u);

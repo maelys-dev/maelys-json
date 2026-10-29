@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Add the explicit RFC8259_LAST_WINS reader profile: decoded duplicate keys
+  retain their last value, with coherent traversal and source-wide limits.
+- Add document_duplicate_count and document_parse_allocation_bound. Compact
+  discarded values before publication; duplicate sources are never canonical.
+- Interface generation (ABI) 4 adds symbols and preserves existing layouts,
+  profile values and strict behavior. The new profile is reader-only; writers
+  reject it and still reject duplicate keys.
+- Test allocation bounds and cleanup with failure at every parse allocation.
+
 - **The fuzz targets are named once.** `fuzz`, `fuzz-smoke` and
   `fuzz-minimize` each carried their own list, and the merge that brought
   the canonical differential in kept the line that builds `fuzz_canonical`

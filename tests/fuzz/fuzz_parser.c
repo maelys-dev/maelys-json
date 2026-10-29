@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0 */
-/* Parses arbitrary bytes under both profiles and walks every value with the
+/* Parses arbitrary bytes under all profiles and walks every value with the
  * typed readers, so the reader paths are covered too. */
 #include "maelys/json.h"
 
@@ -27,6 +27,9 @@ static void walk(const maelys_json_document_t *document, maelys_json_value_t val
                 maelys_json_value_t found;
                 if (maelys_json_object_get_sized(document, value, view.data,
                         view.size, &found) != MAELYS_JSON_OK) {
+                    abort();
+                }
+                if (found != member) {
                     abort();
                 }
                 walk(document, member);
@@ -77,7 +80,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     for (int profile = MAELYS_JSON_PROFILE_RFC8259;
-         profile <= MAELYS_JSON_PROFILE_CONTRACT_ASCII; ++profile) {
+        profile <= MAELYS_JSON_PROFILE_RFC8259_LAST_WINS; ++profile) {
         maelys_json_document_t *document = NULL;
         maelys_json_error_t error;
         maelys_json_result_t result = maelys_json_document_parse(data, size,
@@ -87,6 +90,21 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             abort();
         }
         if (result == MAELYS_JSON_OK) {
+            size_t duplicates = 0u;
+            if (maelys_json_document_duplicate_count(document, &duplicates) !=
+                    MAELYS_JSON_OK ||
+                (profile != MAELYS_JSON_PROFILE_RFC8259_LAST_WINS &&
+                    duplicates)) {
+                abort();
+            }
+            if (duplicates) {
+                int canonical = 1;
+                if (maelys_json_document_is_canonical(
+                        document, 0u, &canonical) != MAELYS_JSON_OK ||
+                    canonical) {
+                    abort();
+                }
+            }
             walk(document, maelys_json_document_root(document));
             maelys_json_document_release(document);
         }

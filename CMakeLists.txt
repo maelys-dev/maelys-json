@@ -65,6 +65,15 @@ if(MAELYS_JSON_BUILD_TESTS)
         tests/test_canonical.c)
     target_link_libraries(maelys_json_tests PRIVATE maelys::json)
     add_test(NAME maelys_json COMMAND maelys_json_tests)
+    add_library(maelys_json_allocation_probe OBJECT ${MAELYS_JSON_SOURCES})
+    target_include_directories(maelys_json_allocation_probe PRIVATE include)
+    target_compile_definitions(maelys_json_allocation_probe PRIVATE
+        malloc=maelys_test_malloc calloc=maelys_test_calloc
+        realloc=maelys_test_realloc free=maelys_test_free)
+    add_executable(maelys_json_allocation_tests tests/test_allocation.c
+        $<TARGET_OBJECTS:maelys_json_allocation_probe>)
+    target_include_directories(maelys_json_allocation_tests PRIVATE include)
+    add_test(NAME maelys_json_allocation COMMAND maelys_json_allocation_tests)
     set_tests_properties(maelys_json PROPERTIES
         ENVIRONMENT "MAELYS_JSON_VECTORS=${CMAKE_CURRENT_SOURCE_DIR}/tests/vectors;MAELYS_JSON_TEST_SUITE=${CMAKE_CURRENT_SOURCE_DIR}/tests/conformance/JSONTestSuite/test_parsing")
 endif()

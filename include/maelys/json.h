@@ -38,9 +38,9 @@ extern "C" {
 #define MAELYS_JSON_VERSION_PATCH 1
 #define MAELYS_JSON_VERSION_STRING "0.3.1"
 
-/* Incremented whenever a public type, enumerator value or symbol changes
- * incompatibly. Consumers may static_assert on it. */
-#define MAELYS_JSON_ABI_VERSION 3u
+/* Interface generation, including new public symbols (as in 0.3.0).
+ * Generation 4 preserves the layouts and existing enumerator values of 3. */
+#define MAELYS_JSON_ABI_VERSION 4u
 
 /* Values used when a maelys_json_limits_t field is zero or the pointer is
  * NULL. */
@@ -96,7 +96,12 @@ typedef enum maelys_json_result {
  */
 typedef enum maelys_json_profile {
     MAELYS_JSON_PROFILE_RFC8259 = 1,
-    MAELYS_JSON_PROFILE_CONTRACT_ASCII = 2
+    MAELYS_JSON_PROFILE_CONTRACT_ASCII = 2,
+    /* RFC8259 lexical rules; repeated decoded keys keep their last value.
+     * Traversal follows the order of surviving last occurrences. Every source
+     * value is validated and charged to limits, including discarded values.
+     * Reader-only: writer_create rejects this profile with ARGUMENT. */
+    MAELYS_JSON_PROFILE_RFC8259_LAST_WINS = 3
 } maelys_json_profile_t;
 
 typedef enum maelys_json_type {
@@ -170,6 +175,21 @@ maelys_json_result_t maelys_json_document_parse(
     const maelys_json_limits_t *limits, maelys_json_document_t **out_document,
     maelys_json_error_t *out_error);
 
+/* Conservative upper bound on simultaneous heap allocation requests for
+ * parse and document storage, including temporary compaction. Excludes the
+ * caller's input, parse_file's file buffer, stack and allocator overhead/RSS.
+ * No allocation or input scan. Same limits/defaults as parse. Errors:
+ * ARGUMENT, LIMIT (input or allocation bound too large). Output only on OK. */
+maelys_json_result_t maelys_json_document_parse_allocation_bound(size_t size,
+    maelys_json_profile_t profile, const maelys_json_limits_t *limits,
+    size_t *out_bytes);
+
+/* Number of repeated occurrences after the first in each source object,
+ * including objects later discarded. Strict documents return zero. O(1),
+ * no allocation. NULL document/output: ARGUMENT, output unchanged. */
+maelys_json_result_t maelys_json_document_duplicate_count(
+    const maelys_json_document_t *document, size_t *out_count);
+
 /*
  * Reads a whole file, bounded by maximum_bytes, then parses it.
  * Errors: those of maelys_json_document_parse, plus IO (open or read
@@ -191,7 +211,8 @@ maelys_json_result_t maelys_json_document_parse_file(
  * presentation flags are an ARGUMENT error. A document with a non-integer
  * number is reported as not canonical, not as an error. This is the check to
  * run before hashing or verifying a signed contract.
- * Errors: ARGUMENT, MEMORY.
+ * A source containing duplicate keys is never canonical, even when their
+ * values are identical. Errors: ARGUMENT, MEMORY.
  */
 maelys_json_result_t maelys_json_document_is_canonical(
     const maelys_json_document_t *document, unsigned int flags,
@@ -302,7 +323,9 @@ maelys_json_result_t maelys_json_object_get_boolean(
  * MAELYS_JSON_ERR_STATE. Recover by releasing the writer.
  *
  * `flags` is a bitwise OR of MAELYS_JSON_WRITER_* values, or 0. Unknown bits
- * are an ARGUMENT error. `limits` may be NULL.
+ * are an ARGUMENT error. `limits` may be NULL. Only RFC8259 and
+ * CONTRACT_ASCII profiles are accepted; RFC8259_LAST_WINS is reader-only.
+ * Copy a tolerant document using writer_value with an RFC8259 writer.
  */
 maelys_json_result_t maelys_json_writer_create(
     maelys_json_profile_t profile, const maelys_json_limits_t *limits,
