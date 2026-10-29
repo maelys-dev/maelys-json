@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 — 2026-10-29
 
 - **A third reader profile, `RFC8259_LAST_WINS`, keeps the last value of
   a repeated key.** Some producers emit an object with the same decoded key
@@ -28,6 +28,26 @@
   layouts, existing enumerator values and the behaviour of the strict
   profiles are those of generation 3.
 
+### Decisions
+
+- **Traversal follows the last occurrences.** For `{"a":1,"b":2,"a":3}`,
+  `a` is `3`, as `JSON.parse` and Python keep it, but traversal yields `b`
+  then `a` where they yield `a` then `b`. Keeping each key at its first
+  position would cost the compaction more bookkeeping for no caller: the
+  writer sorts keys, so what is written is the same either way.
+- **Tolerance is chosen, never inferred.** The strict profiles keep their
+  numbers and their refusal; a caller reads duplicates only by naming the
+  third profile, and still learns how many there were. Requested for a
+  harness that reads an external producer's events, which can repeat a
+  key; maelys-jsonrpc counts duplicates to refuse a message that carried
+  any.
+
+### Release mechanism and CI
+
+- The release socle moves from maelys-release v0.63.1 to **v0.65.1**. No
+  version in between asks this product anything: the pins of `release.yml`
+  and `ci.yml` move, and the managed texts of `AGENTS.md`, `CLAUDE.md` and
+  the release skill follow.
 - **The fuzz targets are named once.** `fuzz`, `fuzz-smoke` and
   `fuzz-minimize` each carried their own list, and the merge that brought
   the canonical differential in kept the line that builds `fuzz_canonical`

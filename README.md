@@ -16,7 +16,7 @@ Maelys security contracts. C11, no dependency, opaque ABI, no global state.
   numeric domain extended to exact int64/uint64. Indented and ASCII-only
   presentation forms are available as flags.
 
-### Tolerant input (unreleased, interface generation 4)
+### Tolerant input (since 0.4.0, interface generation 4)
 
 The existing RFC8259 and CONTRACT_ASCII profiles still reject duplicate decoded
 keys. Choose `MAELYS_JSON_PROFILE_RFC8259_LAST_WINS` explicitly for foreign input
