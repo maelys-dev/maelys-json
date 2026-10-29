@@ -34,9 +34,9 @@ extern "C" {
 
 /* Release version, mirrored from the VERSION file (checked by `make check`). */
 #define MAELYS_JSON_VERSION_MAJOR 0
-#define MAELYS_JSON_VERSION_MINOR 3
-#define MAELYS_JSON_VERSION_PATCH 1
-#define MAELYS_JSON_VERSION_STRING "0.3.1"
+#define MAELYS_JSON_VERSION_MINOR 4
+#define MAELYS_JSON_VERSION_PATCH 0
+#define MAELYS_JSON_VERSION_STRING "0.4.0"
 
 /* Interface generation, including new public symbols (as in 0.3.0).
  * Generation 4 preserves the layouts and existing enumerator values of 3. */
