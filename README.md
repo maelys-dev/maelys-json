@@ -23,6 +23,9 @@ keys. Choose `MAELYS_JSON_PROFILE_RFC8259_LAST_WINS` explicitly for foreign inpu
 that needs last-occurrence handling. A repeated key replaces the complete value,
 without merging objects. Indexed traversal follows the order of the surviving
 last occurrences; all accessors and writer copies see that same unique tree.
+For `{"a":1,"b":2,"a":3}`, `a` is `3`, the same value as `JSON.parse` and
+Python's `json.loads` keep, but traversal yields `b` then `a`, where both of
+those yield `a` then `b`. Writers sort keys, so the written bytes are the same.
 
 `maelys_json_document_duplicate_count` counts repeated occurrences in the entire
 source, including discarded subtrees. Every value still consumes input, depth

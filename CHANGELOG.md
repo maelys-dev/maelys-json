@@ -2,14 +2,31 @@
 
 ## Unreleased
 
-- Add the explicit RFC8259_LAST_WINS reader profile: decoded duplicate keys
-  retain their last value, with coherent traversal and source-wide limits.
-- Add document_duplicate_count and document_parse_allocation_bound. Compact
-  discarded values before publication; duplicate sources are never canonical.
-- Interface generation (ABI) 4 adds symbols and preserves existing layouts,
-  profile values and strict behavior. The new profile is reader-only; writers
-  reject it and still reject duplicate keys.
-- Test allocation bounds and cleanup with failure at every parse allocation.
+- **A third reader profile, `RFC8259_LAST_WINS`, keeps the last value of
+  a repeated key.** Some producers emit an object with the same decoded key
+  twice, and the strict profiles refuse such a document whole. A caller
+  that must read it now says so by choosing this profile: the last
+  occurrence replaces the whole value, without merging objects, and every
+  accessor sees the same tree of survivors, traversed in the order of those
+  last occurrences. Every value of the source, discarded ones included, is
+  validated and charged to the limits, and the discarded storage is
+  compacted away before the document is returned. `RFC8259` and
+  `CONTRACT_ASCII` still reject duplicates, and so does every writer; the
+  writer refuses the new profile, and a tolerant document is rewritten
+  through an `RFC8259` writer, which copies the survivors only.
+- **`maelys_json_document_duplicate_count` tells how many occurrences were
+  discarded**, over the whole source, nested and discarded objects included,
+  so a caller can refuse or report what it read. A source with any
+  duplicate is never canonical, even when the values are equal.
+- **`maelys_json_document_parse_allocation_bound` gives the heap a parse
+  may request, before parsing.** It reads no input and allocates nothing,
+  so a caller can reserve memory for a document it has not read yet. A test
+  routes the library's allocator through a counter, checks every parse
+  stays under that bound, and fails each allocation in turn to show that
+  nothing leaks.
+- **Interface generation 4.** It adds the symbols and the enumerator above;
+  layouts, existing enumerator values and the behaviour of the strict
+  profiles are those of generation 3.
 
 - **The fuzz targets are named once.** `fuzz`, `fuzz-smoke` and
   `fuzz-minimize` each carried their own list, and the merge that brought

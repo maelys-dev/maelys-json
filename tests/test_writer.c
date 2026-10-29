@@ -186,12 +186,10 @@ static int limits(void) {
         0u, &writer), MAELYS_JSON_ERR_ARGUMENT);
     CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL,
         1u << 7, &writer), MAELYS_JSON_ERR_ARGUMENT);
-    CHECK_RESULT(maelys_json_writer_create(
-                     MAELYS_JSON_PROFILE_RFC8259_LAST_WINS, NULL, 0u, &writer),
-        MAELYS_JSON_ERR_ARGUMENT);
-    CHECK_RESULT(
-        maelys_json_writer_create((maelys_json_profile_t)4, NULL, 0u, &writer),
-        MAELYS_JSON_ERR_ARGUMENT);
+    CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259_LAST_WINS,
+        NULL, 0u, &writer), MAELYS_JSON_ERR_ARGUMENT);
+    CHECK_RESULT(maelys_json_writer_create((maelys_json_profile_t)4, NULL, 0u,
+        &writer), MAELYS_JSON_ERR_ARGUMENT);
     CHECK_RESULT(maelys_json_writer_create(MAELYS_JSON_PROFILE_RFC8259, NULL, 0u,
         NULL), MAELYS_JSON_ERR_ARGUMENT);
     return 0;
