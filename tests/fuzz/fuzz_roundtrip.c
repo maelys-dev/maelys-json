@@ -17,8 +17,9 @@
 static char *serialize(const char *input, size_t size, unsigned int flags,
     size_t *out_size) {
     maelys_json_document_t *document = NULL;
-    if (maelys_json_document_parse(input, size, MAELYS_JSON_PROFILE_RFC8259,
-            NULL, &document, NULL) != MAELYS_JSON_OK) {
+    if (maelys_json_document_parse(input, size,
+            MAELYS_JSON_PROFILE_RFC8259_LAST_WINS, NULL, &document,
+            NULL) != MAELYS_JSON_OK) {
         return NULL;
     }
     maelys_json_writer_t *writer = NULL;

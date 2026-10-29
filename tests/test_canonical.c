@@ -57,14 +57,19 @@ static int differ(const char *text, size_t size, maelys_json_profile_t profile,
     return failures;
 }
 
-static int differ_both_profiles(const char *text, size_t size, const char *origin) {
+static int differ_all_profiles(const char *text, size_t size, const char *origin) {
     return differ(text, size, MAELYS_JSON_PROFILE_RFC8259, origin) +
-        differ(text, size, MAELYS_JSON_PROFILE_CONTRACT_ASCII, origin);
+        differ(text, size, MAELYS_JSON_PROFILE_CONTRACT_ASCII, origin) +
+        differ(text, size, MAELYS_JSON_PROFILE_RFC8259_LAST_WINS, origin);
 }
 
 /* Inputs chosen where the two implementations could part company. */
 static int variants(void) {
     static const char *const inputs[] = {
+        /* Last-wins survivors can be canonical while their source is not. */
+        "{\"id\":1,\"id\":1}", "{\"id\":1,\"id\":2}\n",
+        "{\"id\":1,\"\\u0069d\":2}", "{\"x\":{\"a\":1,\"a\":2},\"x\":0}",
+        "{\"a\":1.5,\"a\":0}", "{\"a\":0,\"a\":1.5}",
         /* Shape and whitespace. */
         "{}", "[]", "1", "0", "-1", "\"\"", "true", "false", "null",
         "{\"a\":1}", "{ \"a\":1}", "{\"a\": 1}", "{\"a\":1 }", "[1, 2]",
@@ -91,7 +96,7 @@ static int variants(void) {
     };
     int failures = 0;
     for (size_t i = 0u; i < sizeof(inputs) / sizeof(inputs[0]); ++i) {
-        failures += differ_both_profiles(inputs[i], strlen(inputs[i]), inputs[i]);
+        failures += differ_all_profiles(inputs[i], strlen(inputs[i]), inputs[i]);
     }
     /* A document at the depth ceiling, built rather than written out. */
     size_t depth = MAELYS_JSON_MAXIMUM_DEPTH;
@@ -102,7 +107,7 @@ static int variants(void) {
         nested[2u * depth - 1u - i] = ']';
     }
     nested[2u * depth] = '\0';
-    failures += differ_both_profiles(nested, 2u * depth, "deepest array");
+    failures += differ_all_profiles(nested, 2u * depth, "deepest array");
     free(nested);
     CHECK(failures == 0);
     return 0;
@@ -168,7 +173,7 @@ static int differ_directory(const char *directory, const char *suffix,
             continue;
         }
         ++*out_files;
-        failures += differ_both_profiles(bytes, size, name);
+        failures += differ_all_profiles(bytes, size, name);
         free(bytes);
     }
     closedir(handle);

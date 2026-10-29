@@ -4,6 +4,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+maelys_json_result_t maelys_json_document_duplicate_count(
+    const maelys_json_document_t *document, size_t *out_count) {
+    if (!document || !out_count) {
+        return MAELYS_JSON_ERR_ARGUMENT;
+    }
+    *out_count = document->duplicate_count;
+    return MAELYS_JSON_OK;
+}
+
 void maelys_json_document_release(maelys_json_document_t *document) {
     if (!document) {
         return;

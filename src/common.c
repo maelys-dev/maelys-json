@@ -42,7 +42,8 @@ size_t maelys_json_canonical_escape(unsigned char byte, char *out) {
 
 int maelys_json_profile_valid(maelys_json_profile_t profile) {
     return profile == MAELYS_JSON_PROFILE_RFC8259 ||
-        profile == MAELYS_JSON_PROFILE_CONTRACT_ASCII;
+        profile == MAELYS_JSON_PROFILE_CONTRACT_ASCII ||
+        profile == MAELYS_JSON_PROFILE_RFC8259_LAST_WINS;
 }
 
 maelys_json_result_t maelys_json_limits_resolve(

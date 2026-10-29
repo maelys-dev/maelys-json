@@ -63,8 +63,9 @@ TEST := $(BUILD)/bin/test-json
 PC := $(BUILD)/lib/pkgconfig/maelys-json.pc
 FLAGS_STAMP := $(BUILD)/cflags.stamp
 
-.PHONY: all test check lint tidy format asan ubsan asan-ubsan coverage conformance \
-	cmake-check fuzz fuzz-smoke jcs-diff bench install clean force
+.PHONY: all test test-allocation check lint tidy format asan ubsan asan-ubsan \
+	coverage conformance cmake-check fuzz fuzz-smoke jcs-diff bench install \
+	clean force
 
 CANON := $(BUILD)/bin/maelys-json-canon
 BENCH := $(BUILD)/bin/bench
@@ -108,6 +109,25 @@ $(BENCH): tools/bench.c $(LIBRARY) $(FLAGS_STAMP)
 test: $(TEST)
 	MAELYS_JSON_VECTORS=tests/vectors MAELYS_JSON_TEST_SUITE=$(SUITE) $(TEST)
 
+# The library rebuilt with its allocator calls routed to the test's counting
+# allocator: the peak of every parse stays under the public bound, and a
+# failure injected at each allocation in turn leaves nothing behind.
+ALLOCATION_OBJECTS := $(SOURCES:src/%.c=$(BUILD)/allocation/%.o)
+ALLOCATION_TEST := $(BUILD)/bin/test-allocation
+
+$(BUILD)/allocation/%.o: src/%.c $(HEADERS) $(FLAGS_STAMP)
+	@mkdir -p $(@D)
+	$(CC) $(ALL_CFLAGS) -Dmalloc=maelys_test_malloc \
+		-Dcalloc=maelys_test_calloc -Drealloc=maelys_test_realloc \
+		-Dfree=maelys_test_free -c $< -o $@
+
+$(ALLOCATION_TEST): tests/test_allocation.c $(ALLOCATION_OBJECTS) $(FLAGS_STAMP)
+	@mkdir -p $(@D)
+	$(CC) $(ALL_CFLAGS) tests/test_allocation.c $(ALLOCATION_OBJECTS) -o $@
+
+test-allocation: $(ALLOCATION_TEST)
+	$(ALLOCATION_TEST)
+
 # Differential test against the ECMAScript definition of RFC 8785 on the
 # shared integer-only domain (needs node).
 JCS_COUNT ?= 500
@@ -122,7 +142,7 @@ bench: $(BENCH)
 # Full gate: tests with -Werror, C++ header check, strict lint, size and
 # version policies, whitespace hygiene.
 check: WERROR := -Werror
-check: test lint
+check: test lint test-allocation
 	@mkdir -p $(BUILD)
 	$(CXX) $(ALL_CXXFLAGS) tests/header_cpp.cpp -c -o $(BUILD)/header-cpp.o
 	@find src include tests -type f \( -name '*.c' -o -name '*.h' \) \

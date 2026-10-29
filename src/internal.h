@@ -60,6 +60,7 @@ typedef struct maelys_json_token {
     size_t children_offset;
     unsigned char object_key;
     unsigned char boolean_value;
+    unsigned char superseded;
 } maelys_json_token_t;
 
 struct maelys_json_document {
@@ -74,6 +75,7 @@ struct maelys_json_document {
     size_t arena_capacity;
     /* Children of every container, contiguous per container. */
     size_t *children;
+    size_t duplicate_count;
 };
 
 MAELYS_JSON_INTERNAL int maelys_json_profile_valid(
